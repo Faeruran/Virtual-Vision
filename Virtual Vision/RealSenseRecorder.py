@@ -4,6 +4,7 @@ import pyrealsense2 as rs2
 import keyboard
 import numpy as np
 import cv2
+from Logger import Logger
 
 class RealSenseRecorder(object):
 
@@ -23,6 +24,8 @@ class RealSenseRecorder(object):
         os.makedirs(os.path.join(self.rootDir, "Depth"))
         os.makedirs(os.path.join(self.rootDir, "Color"))
 
+        Logger.printInfo("Using workspace : " + '"' + self.rootDir + '"')
+
 
 
     def scan(self) :
@@ -35,6 +38,8 @@ class RealSenseRecorder(object):
         counter = 0
 
         if self.scanDuration :
+
+            Logger.printInfo(str(self.scanDuration) + " seconds scanner started !")
 
             initTime = time.time()
             
@@ -59,9 +64,11 @@ class RealSenseRecorder(object):
 
                 counter += 1
 
-
+            Logger.printSuccess("End of scan !")
 
         else :
+
+            Logger.printInfo("Scanner started ! Press Q to end the capture !")
 
             while not keyboard.is_pressed("q") :
 
@@ -84,7 +91,7 @@ class RealSenseRecorder(object):
 
                 counter += 1
 
-                time.sleep(0.1)
+            Logger.printSuccess("End of scan !")
 
 
     def getFrame(self) :
@@ -107,19 +114,22 @@ class RealSenseRecorder(object):
     def close(self) :
         
         #Close the pipeline
+        Logger.printInfo("Closing scanner ...")
         self.depthSensor.stop()
         self.pipeline.stop()
         
-        print("Pipeline closed")
+        Logger.printSuccess("Scanner successfully closed !")
 
 
     
-    def __init__(self, scanDuration, rootDir, fps=30, visualPreset=3, laserPower=240, exposure=3200, gain=16, sharpening=False) :
+    def __init__(self, scanDuration, rootDir, sharpening, fps, visualPreset, laserPower, exposure, gain) :
 
         self.scanDuration = scanDuration
         self.fps = fps
         self.rootDir = rootDir
         self.sharpening = sharpening
+
+        Logger.printInfo("Initializing scanner ...")
 
         try :
 
@@ -135,7 +145,7 @@ class RealSenseRecorder(object):
 
         except Exception as e :
             
-            print("Unable to start the stream ...\n" + str(e))
+            Logger.printError("Unable to start the stream, gonna quit.\nException -> " + str(e))
             exit()
 
 
@@ -162,11 +172,13 @@ class RealSenseRecorder(object):
 
         except Exception as e :
 
-            print("Unable to set one parameter on the RealSense. Gonna continue to run.\n" + str(e))
+            Logger.printError("Unable to set one parameter on the RealSense, gonna continue to run.\nException -> " + str(e))
             pass
 
         #Create an align object -> aligning depth frames to color frames
         self.aligner = rs2.align(rs2.stream.color)
+
+        Logger.printSuccess("Scanner successfully initialized !")
 
 
         

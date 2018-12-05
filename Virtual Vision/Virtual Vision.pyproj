@@ -21,6 +21,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Logger.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="RealSenseRecorder.py">
       <SubType>Code</SubType>
     </Compile>
