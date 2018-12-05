@@ -5,7 +5,7 @@
 Virtual Vision is a computer vision project whose goal is to improve the monitoring of complex and vast environments using multiple technologies such as deep learning, virtual reality and 3D scanning. This projects allows one to :
 
 1. Scan and obtain a 3D model of the environment to monitor
-2. Watch and move the virtual world (the 3D model) using a virtual reality headset and a controller
+2. Watch and move within the virtual world (the 3D model), using a virtual reality headset and a controller
 3. Detect and integrate dynamic objects such as humans, animals or vehicles within the virtual world, at their real location
 
 ## Resources
