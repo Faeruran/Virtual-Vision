@@ -4,9 +4,24 @@ import pyrealsense2 as rs2
 import keyboard
 import numpy as np
 import cv2
+import json
 from Logger import Logger
 
 class RealSenseRecorder(object):
+
+    def exportIntrinsics(self) :
+
+        #Exports a JSON file, following the template provided by Open3D, which contains the intrinsics of the RealSense
+        temp = {
+            "width" : self.width,
+            "height" : self.height,
+            "intrinsic_matrix" : [self.intrinsics.fx, 0, 0, 0, self.intrinsics.fy, 0, self.intrinsics.ppx, self.intrinsics.ppy, 1]
+            }
+
+        with open(os.path.join(self.rootDir, "Intrinsics.json"), "w") as jsonFile :
+            json.dump(temp, jsonFile)
+
+
 
     def imageSharpener(self, blurryImage) :
 
@@ -23,7 +38,7 @@ class RealSenseRecorder(object):
         os.makedirs(self.rootDir)
         os.makedirs(os.path.join(self.rootDir, "Depth"))
         os.makedirs(os.path.join(self.rootDir, "Color"))
-
+        self.exportIntrinsics()
         Logger.printInfo("Using workspace : " + '"' + self.rootDir + '"')
 
 
@@ -122,12 +137,14 @@ class RealSenseRecorder(object):
 
 
     
-    def __init__(self, scanDuration, rootDir, sharpening, fps, visualPreset, laserPower, exposure, gain) :
+    def __init__(self, scanDuration, rootDir, sharpening, fps, width, height, visualPreset, laserPower, exposure, gain) :
 
         self.scanDuration = scanDuration
         self.fps = fps
         self.rootDir = rootDir
         self.sharpening = sharpening
+        self.width = width
+        self.height = height
 
         Logger.printInfo("Initializing scanner ...")
 
@@ -137,8 +154,8 @@ class RealSenseRecorder(object):
             self.pipeline = rs2.pipeline()
             self.config = rs2.config()
             #Enable streams
-            self.config.enable_stream(rs2.stream.depth, 1280, 720, rs2.format.z16, self.fps)
-            self.config.enable_stream(rs2.stream.color, 1280, 720, rs2.format.bgr8, self.fps)
+            self.config.enable_stream(rs2.stream.depth, width, height, rs2.format.z16, self.fps)
+            self.config.enable_stream(rs2.stream.color, width, height, rs2.format.bgr8, self.fps)
 
             #Start streaming
             self.profile = self.pipeline.start(self.config)
@@ -152,6 +169,8 @@ class RealSenseRecorder(object):
 
         self.device = self.profile.get_device()
         self.depthSensor = self.device.first_depth_sensor()
+        self.intrinsics = self.profile.get_stream(rs2.stream.depth).as_video_stream_profile().get_intrinsics()
+        print(self.intrinsics)
 
         try :
 
