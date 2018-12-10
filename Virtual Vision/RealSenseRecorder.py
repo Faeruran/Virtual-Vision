@@ -9,6 +9,20 @@ from Logger import Logger
 
 class RealSenseRecorder(object):
 
+    def rgbdErrorSuperposition(self, rgb, d) :
+        
+        rgbdErrorSuperposed = rgb
+        print(d.shape)
+        for x in range(0, self.height) :
+            for y in range(0, self.width) :
+
+                if d[x][y] == 0 :
+                    rgbdErrorSuperposed[x][y] = [0, 0, 255]
+
+        return rgbdErrorSuperposed
+
+
+
     def exportIntrinsics(self) :
 
         #Exports a JSON file, following the template provided by Open3D, which contains the intrinsics of the RealSense
@@ -69,6 +83,9 @@ class RealSenseRecorder(object):
                 cv2.imwrite(depthPath, depthImage)
                 cv2.imwrite(colorPath, colorImage)
 
+                cv2.imshow("Capture", colorImage)
+                cv2.waitKey(1)
+
                 if self.sharpening :
 
                     sharpColorPath = os.path.join(os.path.join(self.rootDir, "Color"), (str(counter) + "-sharp.jpg"))
@@ -95,6 +112,11 @@ class RealSenseRecorder(object):
 
                 cv2.imwrite(depthPath, depthImage)
                 cv2.imwrite(colorPath, colorImage)
+
+                
+                cv2.imshow("Capture", colorImage)
+                cv2.waitKey(1)
+                
 
                 if self.sharpening :
 
@@ -132,12 +154,12 @@ class RealSenseRecorder(object):
         Logger.printInfo("Closing scanner ...")
         self.depthSensor.stop()
         self.pipeline.stop()
-        
+        cv2.destroyAllWindows()
         Logger.printSuccess("Scanner successfully closed !")
 
 
     
-    def __init__(self, scanDuration, rootDir, sharpening, fps, width, height, visualPreset, laserPower, exposure, gain) :
+    def __init__(self, scanDuration, rootDir, sharpening, configFile, fps, width, height, visualPreset, laserPower, exposure, gain) :
 
         self.scanDuration = scanDuration
         self.fps = fps
@@ -145,6 +167,29 @@ class RealSenseRecorder(object):
         self.sharpening = sharpening
         self.width = width
         self.height = height
+        self.configFile = configFile
+
+        if self.configFile :
+
+            try :
+
+                with open(self.configFile) as file:
+
+                        configString = json.load(file)
+                        configDict = configString
+                        configString = json.dumps(configString)
+
+                        self.fps = int(configDict["stream-fps"])
+                        self.width = int(configDict["stream-width"])
+                        self.height = int(configDict["stream-height"])
+
+                        Logger.printSuccess("Parameters successfully loaded !")
+
+            except :
+
+                Logger.printError("Could not read the RealSense configuration file")
+
+        self.window = cv2.namedWindow("Capture", cv2.WINDOW_AUTOSIZE)
 
         Logger.printInfo("Initializing scanner ...")
 
@@ -154,9 +199,8 @@ class RealSenseRecorder(object):
             self.pipeline = rs2.pipeline()
             self.config = rs2.config()
             #Enable streams
-            self.config.enable_stream(rs2.stream.depth, width, height, rs2.format.z16, self.fps)
-            self.config.enable_stream(rs2.stream.color, width, height, rs2.format.bgr8, self.fps)
-
+            self.config.enable_stream(rs2.stream.depth, self.width, self.height, rs2.format.z16, self.fps)
+            self.config.enable_stream(rs2.stream.color, self.width, self.height, rs2.format.bgr8, self.fps)
             #Start streaming
             self.profile = self.pipeline.start(self.config)
 
@@ -169,30 +213,40 @@ class RealSenseRecorder(object):
 
         self.device = self.profile.get_device()
         self.depthSensor = self.device.first_depth_sensor()
-        self.intrinsics = self.profile.get_stream(rs2.stream.depth).as_video_stream_profile().get_intrinsics()
-        print(self.intrinsics)
 
         try :
 
             #Set parameters
-            """
-            0 -> Custom
-            1 -> Default
-            2 -> Hand
-            3 -> High Accuracy
-            4 -> High Density
-            5 -> Medium Density
-            """
-            self.depthSensor.set_option(rs2.option.visual_preset, visualPreset)
-            self.depthSensor.set_option(rs2.option.laser_power, laserPower)
-            self.depthSensor.set_option(rs2.option.gain, gain)
-            self.depthSensor.set_option(rs2.option.exposure, exposure)
-            #self.depthSensor.set_option(rs2.option.max_distance, 4.0)
+
+            if configFile :
+
+                advancedMode = rs2.rs400_advanced_mode(self.device)
+                
+                print(configString)
+                advancedMode.load_json(json_content=configString)
+    
+            else :
+
+                """
+                0 -> Custom
+                1 -> Default
+                2 -> Hand
+                3 -> High Accuracy
+                4 -> High Density
+                5 -> Medium Density
+                """
+                self.depthSensor.set_option(rs2.option.visual_preset, visualPreset)
+                self.depthSensor.set_option(rs2.option.laser_power, laserPower)
+                self.depthSensor.set_option(rs2.option.gain, gain)
+                self.depthSensor.set_option(rs2.option.exposure, exposure)
+                #self.depthSensor.set_option(rs2.option.max_distance, 4.0)
 
         except Exception as e :
 
             Logger.printError("Unable to set one parameter on the RealSense, gonna continue to run.\nException -> " + str(e))
             pass
+
+        self.intrinsics = self.profile.get_stream(rs2.stream.depth).as_video_stream_profile().get_intrinsics()
 
         #Create an align object -> aligning depth frames to color frames
         self.aligner = rs2.align(rs2.stream.color)
