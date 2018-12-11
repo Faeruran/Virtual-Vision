@@ -23,3 +23,36 @@ This project is currently being developed using the following libraries and devi
 ```
 + [Intel® RealSense™ SDK 2.0](https://github.com/IntelRealSense/librealsense)
 + [Intel® RealSense™ D435 (depth camera)](https://realsense.intel.com/)
+
+## Project steps
+
+### Generation of the virtual world
+
+- [x] Dataset acquisition using an Intel RealSense D435
+- [x] Dataset importation
+- [ ] Dataset pre-Processing
+- [ ] Fragment generation
+- [ ] Fragment linkage
+- [ ] Model cleaning/post-Processing
+
+### VR integration
+
+- [ ] Importation in Unity
+- [ ] Automatic alignment
+- [ ] Integration of the VR headset
+
+### Detection and integration of real dynamic objects
+
+- [ ] Detection of real dynamic objects (humans, animals, vehicles, ...)
+- [ ] 3D localization of the detected objects
+- [ ] Integration of the objects within the virtual world
+
+### Development of a controller
+
+- [ ] Development of the hardware
+- [ ] Interfacing the hardware with Unity
+- [ ] Enhancing the ergonomy
+
+## How to use ?
+
+Currently, Virtual-Vision all
