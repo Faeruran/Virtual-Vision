@@ -261,3 +261,7 @@ __pycache__/
 *.pyc
 /Virtual Vision/imgui.ini
 /Virtual Vision/RealSense Config/test.json
+
+# Color and Depth images
+Color/
+Depth/

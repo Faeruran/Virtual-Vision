@@ -1,7 +1,7 @@
 {
   "Name": "SampleDataset",
-  "Dataset Path": "SampleDataset/",
-  "Intrinsics Path": "SampleDataset/Intrinsics.json",
+  "Dataset Path": "Datasets/SampleDataset/",
+  "Intrinsics Path": "Datasets/SampleDataset/Intrinsics.json",
   "Fragment Size" : 50,
   "Min Depth" : 0,
   "Max Depth": 1.5,

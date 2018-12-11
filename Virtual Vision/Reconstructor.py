@@ -1,12 +1,35 @@
-import open3d
+from open3d import *
+import os
 import json
+import numpy as np
 from Logger import Logger
 
 class Reconstructor(object) :
 
-    def loadRGBD(self, workspace) :
+    def loadRGBD(self) :
+
+        colorPath = os.path.join(self.datasetPath, "Color")
+        depthPath = os.path.join(self.datasetPath, "Depth")
+
+        colorFileList = sorted(os.listdir(colorPath), key = lambda x : int(x.split(".jpg")[0]))
+        depthFileList = sorted(os.listdir(depthPath), key = lambda x : int(x.split(".png")[0]))
+
+        if len(colorFileList) != len(depthFileList) :
+
+            Logger.printError("Color and Depth directories do not contain the same amount of pictures !")
+            exit()
 
         temp = []
+
+        for a in range(0, len(colorFileList)) :
+
+            colorImage = read_image(os.path.join(colorPath, colorFileList[a]))
+            depthImage = read_image(os.path.join(depthPath, depthFileList[a]))
+
+            temp.append(create_rgbd_image_from_color_and_depth(colorImage, depthImage))
+
+        Logger.printSuccess("RGBD dataset (" + str(len(colorFileList * 2)) + " images) successfully loaded !")
+
         return temp
 
 
@@ -18,8 +41,7 @@ class Reconstructor(object) :
             with open(paramFile) as file:
 
                     paramDict = json.load(file)
-                    Logger.printSuccess("Reconstruction parameters successfully loaded !")
-                    Logger.printParameters("RECONSTRUCTION PARAMETERS", paramDict)
+
 
                     for key, value in paramDict.items() :
 
@@ -31,15 +53,19 @@ class Reconstructor(object) :
                         self.maxDepth = value if key == "Max Depth" else self.maxDepth
                         self.voxelSize = value if key == "Voxel Size" else self.voxelSize
 
+                    Logger.printSuccess("Reconstruction parameters successfully loaded !\n")
+                    Logger.printParameters("RECONSTRUCTION PARAMETERS", paramDict)
+
         except Exception as e:
 
-            Logger.printError("Could not read the reconstruction parameters file"))
+            Logger.printError("Could not read the reconstruction parameters file")
             exit()
 
 
 
     def __init__(self, paramFile) :
 
+        #Parameters
         self.name = None
         self.datasetPath = None
         self.intrinsicsPath = None
@@ -50,6 +76,11 @@ class Reconstructor(object) :
 
         Logger.printInfo("Loading the reconstruction parameter file ...")
         self.loadParams(paramFile.replace('"', ''))
+
+        #Data variables
+        Logger.printInfo("Loading the images ...")
+        self.rgbdDataset = self.loadRGBD()
+        #print(self.rgbdDataset)
 
 
 
