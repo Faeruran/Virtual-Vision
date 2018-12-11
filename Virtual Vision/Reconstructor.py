@@ -6,6 +6,10 @@ from Logger import Logger
 
 class Reconstructor(object) :
 
+
+
+
+
     def loadRGBD(self) :
 
         colorPath = os.path.join(self.datasetPath, "Color")
