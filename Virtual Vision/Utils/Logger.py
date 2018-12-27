@@ -1,4 +1,5 @@
 import time
+import sys
 from termcolor import colored
 from colorama import init, Style
 
@@ -17,7 +18,20 @@ class Logger(object):
         print("\n")
 
 
-    
+    @staticmethod
+    def printProgress(message) :
+
+        init()
+        now = time.localtime(time.time())
+
+        timer = Style.BRIGHT + colored(str(now.tm_hour) + ":" + str(now.tm_min) + ":" + str(now.tm_sec), "red")
+        header = Style.BRIGHT + colored("[PROGRESS]", "white", "on_yellow")
+        message = Style.BRIGHT + colored(message, "yellow")
+
+        print(timer + " " + header + " " + message)
+
+
+
     @staticmethod
     def printInfo(message) :
 
@@ -30,11 +44,23 @@ class Logger(object):
 
         print(timer + " " + header + " " + message)
 
+    @staticmethod
+    def printUpdateInfo(message) :
+
+        init()
+        now = time.localtime(time.time())
+
+        timer = Style.BRIGHT + colored(str(now.tm_hour) + ":" + str(now.tm_min) + ":" + str(now.tm_sec), "red")
+        header = Style.BRIGHT + colored("[INFO]", "white", "on_blue")
+        message = Style.BRIGHT + colored(message, "blue")
+
+        sys.stdout.write("\r" + (timer + " " + header + " " + message))
+
 
 
     @staticmethod
     def printSuccess(message) :
-        
+
         init()
         now = time.localtime(time.time())
 
@@ -49,7 +75,7 @@ class Logger(object):
 
     @staticmethod
     def printError(message) :
-        
+
         init()
         now = time.localtime(time.time())
 
@@ -76,3 +102,9 @@ class Logger(object):
         print(temp)
 
 
+
+    @staticmethod
+    def printSubOperationTitle(message) :
+
+        init()
+        print(Style.BRIGHT + colored(message + "\n", "red", "on_white"))

@@ -1,21 +1,26 @@
 import open3d
 import argparse
-import RealSenseRecorder
-import Reconstructor
 import atexit
 import os
 import sys
 import json
 import pyrealsense2 as rs2
+import time
+sys.path.append("./Utils/")
 from Logger import Logger
+sys.path.append("./Scan/")
+import RealSenseRecorder
+sys.path.append("./Reconstruction/")
+import Reconstructor
+import ShardAssembler
 
 
 
 def main() :
 
-    os.system("cls")
+    os.system("clear")
 
-    rootDir = os.path.join(os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop"), "Workspace")
+    rootDir = os.path.join(os.path.join(os.path.join(os.environ["HOME"]), "Bureau"), "Workspace")
 
     parser = argparse.ArgumentParser(description="Virtual Vision v0.0")
     modes = parser.add_subparsers(title = "Operating Mode", dest="mode", help="Scan or Reconstruct")
@@ -27,6 +32,7 @@ def main() :
     scanParser.add_argument("--nsec", action="store", nargs=1, default=[0], type=int, required=False, help="Scan duration in seconds (0 for unlimited, press Q to quit). Default : 0")
     scanParser.add_argument("--workspace", action="store", nargs=1, default=rootDir, type=str, required=False, help="Path of the workspace, where the dataset will be saved. Default : 'USER/Desktop/Workspace'")
     scanParser.add_argument("--sharpening", action="store", nargs=1, default=[0], type=int, required=False, help="Allows to sharpen the images in order to reduce the impact of the motion blur. Default : 0")
+    scanParser.add_argument("--autoreconstruct", action="store", nargs=1, default=[1], type=int, required=False, help="Automatically reconstruct the dataset after the scan. Default : 1")
 
     scanLoadGroup.add_argument("--sconfig", action="store", nargs=1, type=str, required=False, help="Import a JSON RealSense configuration file (instead of Manual Settings, can be generated using the RealSense SDK) : path")
 
@@ -46,7 +52,7 @@ def main() :
 
         parameters = {
             "Scanning Mode" : True,
-            "Reconstructing Mode" : False,
+            "Reconstruction Mode" : bool(args.autoreconstruct[0]),
             "Scan Duration (s)" : args.nsec[0],
             "Workspace Root" : '"' + args.workspace + '"',
             "Sharpening RGB Frames" : bool(args.sharpening[0]),
@@ -59,13 +65,13 @@ def main() :
 
         parameters = {
             "Scanning Mode" : False,
-            "Reconstructing Mode" : True,
+            "Reconstruction Mode" : True,
             "Reconstruction Parameter File" : '"' + args.rconfig[0] + '"'
             }
 
     else :
 
-        Logger.printError("Please set --scan or --reconstruct to 1")
+        Logger.printError("Please use scan or reconstruct")
         exit()
 
     Logger.printParameters("PARAMETERS", parameters)
@@ -122,14 +128,26 @@ def main() :
 
         rsr.setupFolder()
         rsr.scan()
-
+        rsr.writeReconstructionParametersFile()
         atexit.register(rsr.close)
 
-    elif parameters["Reconstructing Mode"] :
+    if parameters["Reconstruction Mode"] :
 
-        reconstructor = Reconstructor.Reconstructor(parameters["Reconstruction Parameter File"])
+        if args.mode == "reconstruct" :
 
-        Logger.printOperationTitle("RECONSTRUCTING")
+            Logger.printOperationTitle("RECONSTRUCTING")
+
+            reconstructor = Reconstructor.Reconstructor(parameters["Reconstruction Parameter File"])
+
+        elif args.mode == "scan" :
+
+            rsr.close()
+
+            Logger.printOperationTitle("RECONSTRUCTING")
+
+            reconstructor = Reconstructor.Reconstructor(os.path.join(rsr.rootDir, "rconfig.json"))
+
+
 
 
 

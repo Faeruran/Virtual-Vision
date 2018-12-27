@@ -30,9 +30,9 @@ This project is currently being developed using the following libraries and devi
 
 - [x] Dataset acquisition using an Intel RealSense D435
 - [x] Dataset importation
-- [ ] Dataset pre-Processing
-- [ ] Fragment generation
-- [ ] Fragment linkage
+- [x] Dataset pre-Processing
+- [x] Shard generation
+- [x] Shard linkage
 - [ ] Model cleaning/post-Processing
 
 ### VR integration

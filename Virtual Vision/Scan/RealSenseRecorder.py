@@ -5,12 +5,46 @@ import keyboard
 import numpy as np
 import cv2
 import json
+import sys
+sys.path.append("../Utils/")
 from Logger import Logger
+
+
 
 class RealSenseRecorder(object):
 
+    def writeReconstructionParametersFile(self) :
+
+        temp =  {
+            "Name" : self.captureName,
+            "Dataset Path" : self.rootDir,
+            "Intrinsics Path" : os.path.join(self.rootDir, "Intrinsics.json"),
+            "Shard Size" : 70,
+            "Min Depth" : 0.0,
+            "Max Depth" : 1.8,
+            "Voxel Size" : 0.03,
+            "Max Depth Difference" : 0.07,
+            "Edge Prune Threshold" : 0.25,
+            "Preference Loop Closure" : 0.1,
+            "Comparison Range" : 3,
+            "Voxel Length" : (3.0/512.0),
+            "SDF Trunc" : 0.04,
+            "Volume Unit Resolution" : 16,
+            "Depth Sampling Stride" : 4,
+            "Correspondence Ratio" : 0.9,
+            "Max Iterations" : 4000000,
+            "Max Validation" : 500,
+            "Relative Fitness" : 1e-6,
+            "Relative RMSE" : 1e-6
+        }
+
+        with open(os.path.join(self.rootDir, "rconfig.json"), "w") as jsonFile :
+            json.dump(temp, jsonFile, indent=4)
+
+
+
     def rgbdErrorSuperposition(self, rgb, d) :
-        
+
         rgbdErrorSuperposed = rgb
         print(d.shape)
         for x in range(0, self.height) :
@@ -48,7 +82,8 @@ class RealSenseRecorder(object):
     def setupFolder(self) :
 
         #Setup a new scan directory within the workspace (the name of the main directory will be the epoch time at the time of the creation)
-        self.rootDir = os.path.join(self.rootDir, ("RSCapture-" + str(int(time.time()))))
+        self.captureName = str(int(time.time()))
+        self.rootDir = os.path.join(self.rootDir, ("RSCapture-" + self.captureName))
         os.makedirs(self.rootDir)
         os.makedirs(os.path.join(self.rootDir, "Depth"))
         os.makedirs(os.path.join(self.rootDir, "Color"))
@@ -65,13 +100,14 @@ class RealSenseRecorder(object):
         #If sharpening is enabled, a sharpened copy of each RGB frame will be saved with the "-sharp" extension
 
         counter = 0
+        modulo = 0
 
         if self.scanDuration :
 
             Logger.printInfo(str(self.scanDuration) + " seconds scanner started !")
 
             initTime = time.time()
-            
+
             while time.time() - initTime < float(self.scanDuration) :
 
                 depthFrame, colorFrame = self.getFrame()
@@ -80,21 +116,25 @@ class RealSenseRecorder(object):
                 depthPath = os.path.join(os.path.join(self.rootDir, "Depth"), (str(counter) + ".png"))
                 colorPath = os.path.join(os.path.join(self.rootDir, "Color"), (str(counter) + ".jpg"))
 
-                cv2.imwrite(depthPath, depthImage)
-                cv2.imwrite(colorPath, colorImage)
+                if modulo % 4 == 0 :
+
+                    cv2.imwrite(depthPath, depthImage)
+                    cv2.imwrite(colorPath, colorImage)
+
+                    if self.sharpening :
+
+                        sharpColorPath = os.path.join(os.path.join(self.rootDir, "Color"), (str(counter) + "-sharp.jpg"))
+                        #sharpDepthPath = os.path.join(os.path.join(self.rootDir, "Depth"), (str(counter) + "-sharp.png"))
+
+                        cv2.imwrite(sharpColorPath, self.imageSharpener(colorImage))
+                        #cv2.imwrite(sharpDepthPath, self.imageSharpener(depthImage))
+
+                    counter += 1
 
                 cv2.imshow("Capture", colorImage)
                 cv2.waitKey(1)
 
-                if self.sharpening :
-
-                    sharpColorPath = os.path.join(os.path.join(self.rootDir, "Color"), (str(counter) + "-sharp.jpg"))
-                    #sharpDepthPath = os.path.join(os.path.join(self.rootDir, "Depth"), (str(counter) + "-sharp.png"))
-
-                    cv2.imwrite(sharpColorPath, self.imageSharpener(colorImage))
-                    #cv2.imwrite(sharpDepthPath, self.imageSharpener(depthImage))
-
-                counter += 1
+                modulo += 1
 
             Logger.printSuccess("End of scan !")
 
@@ -110,29 +150,32 @@ class RealSenseRecorder(object):
                 depthPath = os.path.join(os.path.join(self.rootDir, "Depth"), (str(counter) + ".png"))
                 colorPath = os.path.join(os.path.join(self.rootDir, "Color"), (str(counter) + ".jpg"))
 
-                cv2.imwrite(depthPath, depthImage)
-                cv2.imwrite(colorPath, colorImage)
+                if modulo % 4 == 0 :
 
-                
+                    cv2.imwrite(depthPath, depthImage)
+                    cv2.imwrite(colorPath, colorImage)
+
+                    if self.sharpening :
+
+                        sharpColorPath = os.path.join(os.path.join(self.rootDir, "Color"), (str(counter) + "-sharp.jpg"))
+                        #sharpDepthPath = os.path.join(os.path.join(self.rootDir, "Depth"), (str(counter) + "-sharp.png"))
+
+                        cv2.imwrite(sharpColorPath, self.imageSharpener(colorImage))
+                        #cv2.imwrite(sharpDepthPath, self.imageSharpener(depthImage))
+
+                    counter += 1
+
+
                 cv2.imshow("Capture", colorImage)
                 cv2.waitKey(1)
-                
 
-                if self.sharpening :
-
-                    sharpColorPath = os.path.join(os.path.join(self.rootDir, "Color"), (str(counter) + "-sharp.jpg"))
-                    #sharpDepthPath = os.path.join(os.path.join(self.rootDir, "Depth"), (str(counter) + "-sharp.png"))
-
-                    cv2.imwrite(sharpColorPath, self.imageSharpener(colorImage))
-                    #cv2.imwrite(sharpDepthPath, self.imageSharpener(depthImage))
-
-                counter += 1
+                modulo += 1
 
             Logger.printSuccess("End of scan !")
 
 
     def getFrame(self) :
-        
+
         #Get, align and return frames obtained from the RealSense
         frames = self.pipeline.wait_for_frames()
         alignedFrames = self.aligner.process(frames)
@@ -149,16 +192,22 @@ class RealSenseRecorder(object):
 
 
     def close(self) :
-        
+
         #Close the pipeline
         Logger.printInfo("Closing scanner ...")
-        self.depthSensor.stop()
-        self.pipeline.stop()
+        try :
+            self.depthSensor.stop()
+            self.pipeline.stop()
+        except :
+            pass
+
         cv2.destroyAllWindows()
         Logger.printSuccess("Scanner successfully closed !")
+        #time.sleep(5)
+        self.closed = True
 
 
-    
+
     def __init__(self, scanDuration, rootDir, sharpening, configFile, fps, width, height, visualPreset, laserPower, exposure, gain) :
 
         self.scanDuration = scanDuration
@@ -168,6 +217,8 @@ class RealSenseRecorder(object):
         self.width = width
         self.height = height
         self.configFile = configFile
+        self.captureName = None
+        self.closed = False
 
         if self.configFile :
 
@@ -205,7 +256,7 @@ class RealSenseRecorder(object):
             self.profile = self.pipeline.start(self.config)
 
         except Exception as e :
-            
+
             Logger.printError("Unable to start the stream, gonna quit.\nException -> " + str(e))
             exit()
 
@@ -221,10 +272,10 @@ class RealSenseRecorder(object):
             if configFile :
 
                 advancedMode = rs2.rs400_advanced_mode(self.device)
-                
+
                 print(configString)
                 advancedMode.load_json(json_content=configString)
-    
+
             else :
 
                 """
@@ -252,7 +303,3 @@ class RealSenseRecorder(object):
         self.aligner = rs2.align(rs2.stream.color)
 
         Logger.printSuccess("Scanner successfully initialized !")
-
-
-        
-

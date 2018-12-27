@@ -1,0 +1,10 @@
+{
+  "Name": "SampleDataset",
+  "Dataset Path": "Reconstruction/Datasets/SampleDataset/",
+  "Intrinsics Path": "Reconstruction/Datasets/SampleDataset/Intrinsics.json",
+  "Fragment Size" : 70,
+  "Min Depth" : 0.0,
+  "Max Depth": 1.8,
+  "Voxel Size": 0.03,
+  "Max Depth Difference" : 0.07
+}
