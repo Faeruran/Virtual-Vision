@@ -130,6 +130,7 @@ def main() :
         rsr.scan()
         rsr.writeReconstructionParametersFile()
         atexit.register(rsr.close)
+        rsr.getDatasetDepthQuality()
 
     if parameters["Reconstruction Mode"] :
 

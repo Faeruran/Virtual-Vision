@@ -33,19 +33,23 @@ This project is currently being developed using the following libraries and devi
 - [x] Dataset pre-Processing
 - [x] Shard generation
 - [x] Shard linkage
-- [ ] Model cleaning/post-Processing
+- [x] Model cleaning/post-Processing
 
-### VR integration
+### OpenStack cloud support
 
-- [ ] Importation in Unity
-- [ ] Automatic alignment
-- [ ] Integration of the VR headset
+- [ ] Creating a Client / Server interface
+- [ ] Enhancing the deployment of the server application
 
 ### Detection and integration of real dynamic objects
 
+- [ ] Automatic alignment and calibration of the depth camera with the room's 3D model
 - [ ] Detection of real dynamic objects (humans, animals, vehicles, ...)
 - [ ] 3D localization of the detected objects
 - [ ] Integration of the objects within the virtual world
+
+### VR integration
+
+- [ ] Integration of the VR headset
 
 ### Development of a controller
 

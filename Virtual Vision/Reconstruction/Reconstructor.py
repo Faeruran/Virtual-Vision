@@ -101,14 +101,14 @@ class Reconstructor(object) :
 
 
 
-    def initProcesses(self, num) :
+    def initProcesses(self, num, poolSize) :
 
-        for i in range(0, self.numCPU) :
+        for i in range(0, poolSize) :
 
             self.controlQueues.append(mp.Queue())
             self.answerQueues.append(mp.Queue())
 
-        for i in range(0, self.numCPU) :
+        for i in range(0, poolSize) :
 
             if (((self.numCPU * num) + i) + 1) * self.shardSize <= self.datasetLength :
                 self.processList.append(mp.Process(target=ShardProcessor.ShardProcessor, args=(self.shardSize * ((self.numCPU * num) + i), self.shardSize * (((self.numCPU * num) + i) + 1), ((self.numCPU * num) + i), self.parameters, self.controlQueues[((self.numCPU * num) + i)], self.answerQueues[((self.numCPU * num) + i)],)))
@@ -124,34 +124,34 @@ class Reconstructor(object) :
 
 
 
-    def sendOrder(self, order, num) :
+    def sendOrder(self, order, num, poolSize) :
 
-        for i in range(0, self.numCPU) :
+        for i in range(0, poolSize) :
 
             self.controlQueues[(self.numCPU * num) + i].put(order)
 
 
 
-    def joinProcesses(self, num) :
+    def joinProcesses(self, num, poolSize) :
 
-        for i in range(0, self.numCPU) :
+        for i in range(0, poolSize) :
 
             self.processList[(self.numCPU * num) + i].join()
 
 
 
-    def checkIfDone(self, num) :
+    def checkIfDone(self, num, poolSize) :
 
         done = True
         messages = []
 
-        for i in range(0, self.numCPU) :
+        for i in range(0, poolSize) :
 
             if self.answerQueues[(self.numCPU * num) + i].qsize() == 0 :
 
                 return False
 
-        for j in range(0, self.numCPU) :
+        for j in range(0, poolSize) :
 
             messages.append(self.answerQueues[(self.numCPU * num) + j].get())
 
@@ -163,7 +163,7 @@ class Reconstructor(object) :
 
         else :
 
-            for k in range(0, self.numCPU) :
+            for k in range(0, poolSize) :
 
                 self.answerQueues[(self.numCPU * num) + k].put(messages[(self.numCPU * num) + k])
 
@@ -175,35 +175,48 @@ class Reconstructor(object) :
 
         Logger.printSubOperationTitle("CREATING SHARDS")
 
-        for i in range(0, int(self.numShards / self.numCPU)) :
+        numOperations = float(self.numShards) / self.numCPU
 
-            self.initProcesses(i)
-            while not self.checkIfDone(i) :
+        if numOperations % 1.0 != 0 :
+
+            numOperations += 1
+
+        for i in range(0, int(numOperations)) :
+
+            poolSize = self.numShards / ((i + 1) * self.numCPU)
+
+            if poolSize < 1 :
+                poolSize = self.numShards % self.numCPU
+            else :
+                poolSize = self.numCPU
+
+            self.initProcesses(i, poolSize)
+            while not self.checkIfDone(i, poolSize) :
                 pass
             print("\n")
 
-            self.sendOrder("Load Dataset", i)
-            while not self.checkIfDone(i) :
+            self.sendOrder("Load Dataset", i, poolSize)
+            while not self.checkIfDone(i, poolSize) :
                 pass
             print("\n")
 
-            self.sendOrder("Generate Point Clouds", i)
-            while not self.checkIfDone(i) :
+            self.sendOrder("Generate Point Clouds", i, poolSize)
+            while not self.checkIfDone(i, poolSize) :
                 pass
             print("\n")
 
-            self.sendOrder("Generate Pose Graph", i)
-            while not self.checkIfDone(i) :
+            self.sendOrder("Generate Pose Graph", i, poolSize)
+            while not self.checkIfDone(i, poolSize) :
                 pass
             print("\n")
 
-            self.sendOrder("Pose Graph To Point Cloud", i)
-            while not self.checkIfDone(i) :
+            self.sendOrder("Pose Graph To Point Cloud", i, poolSize)
+            while not self.checkIfDone(i, poolSize) :
                 pass
             print("\n")
 
-            self.sendOrder("Break", i)
-            self.joinProcesses(i)
+            self.sendOrder("Break", i, poolSize)
+            self.joinProcesses(i, poolSize)
 
 
 
@@ -225,17 +238,19 @@ class Reconstructor(object) :
         Logger.printInfo("Loading the reconstruction parameter file ...")
         self.parameters = self.loadParams(paramFile.replace('"', ''))
         self.datasetLength = self.getDatasetLength()
+        Logger.printInfo("Dataset size : " + str(self.datasetLength))
 
         self.numCPU = mp.cpu_count() - 1
         self.shardSize = int(self.parameters["shardSize"])
         if self.numCPU * (self.shardSize - 1) > self.datasetLength :
 
             Logger.printError("Incorrect shard size !")
-            self.shardSize = int(self.datasetLength / self.numCPU) - 1
+            self.shardSize = int(self.datasetLength / self.numCPU)
             Logger.printInfo("Shard size set to " + str(self.shardSize))
 
 
         self.numShards = ceil(float(self.datasetLength / self.shardSize))
+        Logger.printInfo("Number of shards : " + str(self.numShards))
         self.datasetSizes = []
 
         self.processList = []

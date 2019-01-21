@@ -98,6 +98,10 @@ class ShardAssembler(object) :
                 ICPConvergenceCriteria(relative_fitness = self.relativeFitness,
                 relative_rmse = self.relativeRMSE, max_iteration = maxIterations))
 
+        result = registration_icp(self.shards[blend["ID A"]], self.shards[blend["ID B"]], self.voxelSize * 0.4,
+                result.transformation,
+                TransformationEstimationPointToPlane())
+
         return result.transformation, get_information_matrix_from_point_clouds(self.shards[blend["ID A"]], self.shards[blend["ID B"]], self.voxelSize * 1.4, result.transformation)
 
 
@@ -113,6 +117,10 @@ class ShardAssembler(object) :
                 [CorrespondenceCheckerBasedOnEdgeLength(self.correspondenceRatio),
                 CorrespondenceCheckerBasedOnDistance(self.voxelSize * 1.4)],
                 RANSACConvergenceCriteria(self.maxIterations, self.maxValidation))
+
+        result = registration_icp(self.shards[blend["ID A"]], self.shards[blend["ID B"]], self.voxelSize * 0.4,
+                result.transformation,
+                TransformationEstimationPointToPlane())
 
         return True, result.transformation, get_information_matrix_from_point_clouds(self.shards[blend["ID A"]], self.shards[blend["ID B"]], self.voxelSize * 1.4, result.transformation)
 
@@ -192,6 +200,8 @@ class ShardAssembler(object) :
         self.maxValidation = parameters["maxValidation"]
         self.relativeFitness = parameters["relativeFitness"]
         self.relativeRMSE = parameters["relativeRMSE"]
+        self.edgePruneThreshold = parameters["edgePruneThreshold"]
+        self.preferenceLoopClosure = parameters["preferenceLoopClosure"]
 
         self.shards = shards
         self.datasetSizes = datasetSizes
@@ -212,6 +222,7 @@ class ShardAssembler(object) :
         self.results = []
 
         Logger.printInfo("Registrating shards ...")
+        print(len(self.blends))
 
         for blend in self.blends :
 
@@ -236,6 +247,20 @@ class ShardAssembler(object) :
                 self.updatePoseGraph(result)
 
         Logger.printSuccess("Posegraph successfully updated !")
+
+        Logger.printInfo("Optimizing posegraph ...")
+
+        option = GlobalOptimizationOption(
+                max_correspondence_distance = self.voxelSize * 1.4,
+                edge_prune_threshold = self.edgePruneThreshold,
+                preference_loop_closure = self.preferenceLoopClosure,
+                reference_node = 0)
+
+        global_optimization(self.poseGraph,
+            GlobalOptimizationLevenbergMarquardt(),
+            GlobalOptimizationConvergenceCriteria(), option)
+
+        Logger.printSuccess("Posegraph successfully optimized !")
 
         Logger.printInfo("Merging shards ...")
         self.mergeShards()

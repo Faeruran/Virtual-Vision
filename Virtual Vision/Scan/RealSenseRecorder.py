@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 import json
 import sys
+import copy
 sys.path.append("../Utils/")
 from Logger import Logger
 
@@ -20,7 +21,7 @@ class RealSenseRecorder(object):
             "Dataset Path" : self.rootDir,
             "Intrinsics Path" : os.path.join(self.rootDir, "Intrinsics.json"),
             "Shard Size" : 70,
-            "Min Depth" : 0.0,
+            "Min Depth" : 0.2,
             "Max Depth" : 1.8,
             "Voxel Size" : 0.03,
             "Max Depth Difference" : 0.07,
@@ -92,12 +93,72 @@ class RealSenseRecorder(object):
 
 
 
+    def getDatasetDepthQuality(self) :
+
+        Logger.printInfo("Analyzing depth frames quality ...")
+
+        depthPath = os.path.join(self.rootDir, "Depth")
+        depthFileList = sorted(os.listdir(depthPath), key = lambda x : int(x.split(".png")[0]))
+
+        depthDataset = []
+
+        for file in depthFileList :
+            depthDataset.append(cv2.imread(os.path.join(os.path.join(self.rootDir, "Depth"), file), -1))
+
+        mean = 0.0
+        numPixel = self.height * self.width
+        count = 0
+
+        for frame in depthDataset :
+
+            frameQuality = 0.0
+            Logger.printProgress("[Dataset Analysis] Frame " + str(count) + "/" + str(len(depthDataset)) + " -> " + str(round((float(count) * 100.0) / len(depthDataset), 2)) + "%")
+
+            for x in range(self.height) :
+
+                for y in range(self.width) :
+
+                    if frame[x][y] > 0 :
+
+                        frameQuality += 1
+
+            frameQuality = frameQuality / numPixel
+            mean += frameQuality
+
+            count += 1
+
+        mean = mean / len(depthDataset)
+
+        Logger.printSuccess("Average depth coverage : " + str(mean))
+
+
+
     def scan(self) :
 
         #Depending on the --nsec argument set by the user, this function will get, process and save the frames taken by the RealSense
         #This function will use a timer or just wait for the user to press Q
         #The depth images will be saved in a "Depth" directory, while the RGB frames will be saved within the "Color" directory
         #If sharpening is enabled, a sharpened copy of each RGB frame will be saved with the "-sharp" extension
+
+        #decimationFilter = rs2.decimation_filter()
+        #decimationFilter.set_option(rs2.option.filter_magnitude, 2)
+
+        depthDisparityFilter = rs2.disparity_transform(True)
+
+        disparityDepthfilter = rs2.disparity_transform(False)
+
+        spatialFilter = rs2.spatial_filter()
+        spatialFilter.set_option(rs2.option.filter_magnitude, 5)
+        spatialFilter.set_option(rs2.option.filter_smooth_alpha, 1)
+        spatialFilter.set_option(rs2.option.filter_smooth_delta, 50)
+        #spatialFilter.set_option(rs2.option.holes_fill, 3)
+
+        temporalFilter = rs2.temporal_filter()
+        temporalFilter.set_option(rs2.option.filter_smooth_alpha, 0.4)
+        temporalFilter.set_option(rs2.option.filter_smooth_delta, 50)
+
+        holeFillingFilter = rs2.hole_filling_filter()
+        holeFillingFilter.set_option(rs2.option.holes_fill, 2)
 
         counter = 0
         modulo = 0
@@ -116,9 +177,17 @@ class RealSenseRecorder(object):
                 depthPath = os.path.join(os.path.join(self.rootDir, "Depth"), (str(counter) + ".png"))
                 colorPath = os.path.join(os.path.join(self.rootDir, "Color"), (str(counter) + ".jpg"))
 
-                if modulo % 4 == 0 :
+                if modulo % 2 == 0 :
 
-                    cv2.imwrite(depthPath, depthImage)
+                    frame = depthFrame
+                    #frame = decimationFilter.process(frame)
+                    frame = depthDisparityFilter.process(frame)
+                    frame = spatialFilter.process(frame)
+                    frame = temporalFilter.process(frame)
+                    frame = disparityDepthfilter.process(frame)
+
+
+                    cv2.imwrite(depthPath, np.asanyarray(frame.data))
                     cv2.imwrite(colorPath, colorImage)
 
                     if self.sharpening :
@@ -150,9 +219,17 @@ class RealSenseRecorder(object):
                 depthPath = os.path.join(os.path.join(self.rootDir, "Depth"), (str(counter) + ".png"))
                 colorPath = os.path.join(os.path.join(self.rootDir, "Color"), (str(counter) + ".jpg"))
 
-                if modulo % 4 == 0 :
+                if modulo % 2 == 0 :
 
-                    cv2.imwrite(depthPath, depthImage)
+                    frame = depthFrame
+                    #frame = decimationFilter.process(frame)
+                    frame = depthDisparityFilter.process(frame)
+                    frame = spatialFilter.process(frame)
+                    frame = temporalFilter.process(frame)
+                    frame = disparityDepthfilter.process(frame)
+
+
+                    cv2.imwrite(depthPath, np.asanyarray(frame.data))
                     cv2.imwrite(colorPath, colorImage)
 
                     if self.sharpening :
@@ -172,6 +249,7 @@ class RealSenseRecorder(object):
                 modulo += 1
 
             Logger.printSuccess("End of scan !")
+
 
 
     def getFrame(self) :
@@ -303,3 +381,5 @@ class RealSenseRecorder(object):
         self.aligner = rs2.align(rs2.stream.color)
 
         Logger.printSuccess("Scanner successfully initialized !")
+
+        self.depthDataset = []

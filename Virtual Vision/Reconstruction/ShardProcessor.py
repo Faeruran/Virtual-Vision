@@ -18,7 +18,8 @@ class ShardProcessor(object) :
 
             tempPose = self.poseGraph.nodes[i].pose
             volume.integrate(self.rgbdDatasetRGB[i], self.intrinsics, np.linalg.inv(tempPose))
-            Logger.printProgress("[Shard " + str(self.id) + "] " + str(int(float(i / len(self.poseGraph.nodes)) * 100)) + "% " + str(i) + " x " + str(len(self.poseGraph.nodes)))
+            Logger.printProgress("[Shard " + str(self.id) + "] " + str(round(float(i / len(self.poseGraph.nodes)) * 100, 2)) + "% " + str(i) + "/" + str(len(self.poseGraph.nodes)))
+
         Logger.printProgress("[Shard " + str(self.id) + "] Extracting triangles ...")
         mesh = volume.extract_triangle_mesh()
         Logger.printProgress("[Shard " + str(self.id) + "] Computing normals ...")
@@ -81,7 +82,7 @@ class ShardProcessor(object) :
                     self.poseGraph.nodes.append(PoseGraphNode(odometryMatrixInv))
                     self.poseGraph.edges.append(PoseGraphEdge(pcNumA, pcNumB, trans, info, uncertain=False))
 
-                    Logger.printProgress("[Shard " + str(self.id) + "] " + str(int(float(pcNumA / len(self.pcDataset)) * 100)) + "% " + str(pcNumA + self.minID) + " x " + str(pcNumB + self.minID))
+                    Logger.printProgress("[Shard " + str(self.id) + "] " + str(round(float(pcNumA / len(self.pcDataset)) * 100, 2)) + "% " + str(pcNumA + self.minID) + " x " + str(pcNumB + self.minID) + " (next frame case)")
 
                 elif pcNumB - pcNumA < self.comparisonRange :
 
@@ -90,18 +91,18 @@ class ShardProcessor(object) :
 
                         self.poseGraph.edges.append(PoseGraphEdge(pcNumA, pcNumB, trans, info, uncertain = True))
 
-                        Logger.printProgress("[Shard " + str(self.id) + "] " + str(int(float(pcNumA / len(self.pcDataset)) * 100)) + "% " + str(pcNumA + self.minID) + " x " + str(pcNumB + self.minID))
+                        Logger.printProgress("[Shard " + str(self.id) + "] " + str(round(float(pcNumA / len(self.pcDataset)) * 100, 2)) + "% " + str(pcNumA + self.minID) + " x " + str(pcNumB + self.minID) + " (n...n+" + str(self.comparisonRange) + " frame case)")
 
-                """
-                if pcNumA % 5 == 0 and pcNumB % 5 == 0 :
+
+                elif pcNumA % 5 == 0 and pcNumB % 5 == 0 :
 
                     [success, trans, info] = self.pairRegistration(pcNumA, pcNumB)
                     if success :
 
                         self.poseGraph.edges.append(PoseGraphEdge(pcNumA, pcNumB, trans, info, uncertain = True))
 
-                        Logger.printProgress("[Shard " + str(self.id) + "] " + str(int(float(pcNumA / len(self.pcDataset)) * 100)) + "% " + str(pcNumA + self.minID) + " x " + str(pcNumB + self.minID))
-                """
+                        Logger.printProgress("[Shard " + str(self.id) + "] " + str(round(float(pcNumA / len(self.pcDataset)) * 100, 2)) + "% " + str(pcNumA + self.minID) + " x " + str(pcNumB + self.minID) + " (dataset length modulo 5 case)")
+
 
         option = GlobalOptimizationOption(
                 max_correspondence_distance = self.maxDepthDiff,

@@ -6,9 +6,13 @@ from colorama import init, Style
 class Logger(object):
 
     @staticmethod
+    def init() :
+        init()
+
+    @staticmethod
     def printParameters(title, parameters) :
 
-        init()
+        #init()
         print(Style.BRIGHT + colored(title + "\n", "red", "on_white"))
         for key, value in parameters.items() :
 
@@ -21,12 +25,11 @@ class Logger(object):
     @staticmethod
     def printProgress(message) :
 
-        init()
         now = time.localtime(time.time())
 
         timer = Style.BRIGHT + colored(str(now.tm_hour) + ":" + str(now.tm_min) + ":" + str(now.tm_sec), "red")
         header = Style.BRIGHT + colored("[PROGRESS]", "white", "on_yellow")
-        message = Style.BRIGHT + colored(message, "yellow")
+        message = Style.BRIGHT + colored(message, "white")
 
         print(timer + " " + header + " " + message)
 
@@ -35,7 +38,6 @@ class Logger(object):
     @staticmethod
     def printInfo(message) :
 
-        init()
         now = time.localtime(time.time())
 
         timer = Style.BRIGHT + colored(str(now.tm_hour) + ":" + str(now.tm_min) + ":" + str(now.tm_sec), "red")
@@ -47,7 +49,6 @@ class Logger(object):
     @staticmethod
     def printUpdateInfo(message) :
 
-        init()
         now = time.localtime(time.time())
 
         timer = Style.BRIGHT + colored(str(now.tm_hour) + ":" + str(now.tm_min) + ":" + str(now.tm_sec), "red")
@@ -61,7 +62,6 @@ class Logger(object):
     @staticmethod
     def printSuccess(message) :
 
-        init()
         now = time.localtime(time.time())
 
         timer = Style.BRIGHT + colored(str(now.tm_hour) + ":" + str(now.tm_min) + ":" + str(now.tm_sec), "red")
@@ -76,7 +76,6 @@ class Logger(object):
     @staticmethod
     def printError(message) :
 
-        init()
         now = time.localtime(time.time())
 
         timer = Style.BRIGHT + colored(str(now.tm_hour) + ":" + str(now.tm_min) + ":" + str(now.tm_sec), "red")
@@ -96,7 +95,6 @@ class Logger(object):
     @staticmethod
     def printOperationTitle(message) :
 
-        init()
         temp = Style.BRIGHT + colored("\n[#>>> ", "red", "on_white") + colored(message, "cyan", "on_white") + colored(" <<<#]\n", "red", "on_white")
 
         print(temp)
@@ -106,5 +104,4 @@ class Logger(object):
     @staticmethod
     def printSubOperationTitle(message) :
 
-        init()
         print(Style.BRIGHT + colored(message + "\n", "red", "on_white"))
