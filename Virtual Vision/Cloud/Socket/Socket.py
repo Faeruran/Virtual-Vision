@@ -156,6 +156,7 @@ class Socket :
             Logger.printSuccess("Connection received from " + str(address) + "!")
 
             self.requestManager(connection, address)
+            connection.close()
 
         Logger.printInfo("Closing connection with " + str(address) + " ...")
         self.socket.close()

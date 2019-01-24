@@ -13,7 +13,8 @@ import RealSenseRecorder
 sys.path.append("./Reconstruction/")
 import Reconstructor
 import ShardAssembler
-
+sys.path.append("./Socket/")
+import Socket
 
 
 def main() :
@@ -22,12 +23,14 @@ def main() :
 
     rootDir = os.path.join(os.path.join(os.path.join(os.environ["HOME"]), "Bureau"), "Workspace")
 
-    parser = argparse.ArgumentParser(description="Virtual Vision v0.0")
+    parser = argparse.ArgumentParser(description="Virtual Vision v0.1")
     modes = parser.add_subparsers(title = "Operating Mode", dest="mode", help="Scan or Reconstruct")
     scanParser = modes.add_parser("scan", help="Scanning mode")
     scanLoadGroup = scanParser.add_argument_group(title="Automatic Configuration (JSON importation)")
     scanManualGroup = scanParser.add_argument_group(title="Manual Settings")
     reconstructParser = modes.add_parser("reconstruct", help="Reconstruction mode")
+    reconstructCloudManualGroup = reconstructParser.add_argument_group(title="Cloud based reconstruction manual settings")
+    reconstructCloudLoadGroup = reconstructParser.add_argument_group(title="Cloud based reconstruction automatic configuration (JSON importation)")
 
     scanParser.add_argument("--nsec", action="store", nargs=1, default=[0], type=int, required=False, help="Scan duration in seconds (0 for unlimited, press Q to quit). Default : 0")
     scanParser.add_argument("--workspace", action="store", nargs=1, default=rootDir, type=str, required=False, help="Path of the workspace, where the dataset will be saved. Default : 'USER/Desktop/Workspace'")
@@ -45,6 +48,12 @@ def main() :
     scanManualGroup.add_argument("--gain", action="store", nargs=1, default=[16], type=int, required=False, help="RealSense sensor gain. Default : 16")
 
     reconstructParser.add_argument("--rconfig", action="store", nargs=1, default="", type=str, required=True, help="Import a JSON dataset parameter file : path")
+    reconstructParser.add_argument("--cloud", action="store", nargs=1, default=[1], type=int, required=False, help="Export the reconstruction process to a cloud infrastructure. Default : 1")
+
+    reconstructCloudManualGroup.add_argument("--address", action="store", nargs=1, default="192.168.100.156", type=str, required=False, help="Reconstruction server's IP address.")
+    reconstructCloudManualGroup.add_argument("--port", action="store", nargs=1, default="55555", type=str, required=False, help="Reconstruction server's port.")
+
+    reconstructCloudLoadGroup.add_argument("--cconfig", action="store", nargs=1, default="", type=str, required=False, help="Import a JSON cloud settings file : path")
 
     args = parser.parse_args()
 
@@ -66,8 +75,23 @@ def main() :
         parameters = {
             "Scanning Mode" : False,
             "Reconstruction Mode" : True,
-            "Reconstruction Parameter File" : '"' + args.rconfig[0] + '"'
+            "Reconstruction Parameter File" : args.rconfig[0] ,
+            "Mode" : "Local" if not bool(args.cloud[0]) else "Cloud based",
+            "Cloud Configuration File" : '"' + args.cconfig[0] + '"' if args.cconfig else '""'
             }
+
+        if args.cconfig :
+
+            with open(parameters["Cloud Configuration File"]) as file :
+                jsonFile = json.load(file)
+
+            parameters["Address"] = jsonFile["Address"]
+            parameters["Port"] = jsonFile["Port"]
+
+        else :
+
+            parameters["Address"] = args.address
+            parameters["Port"] = args.port
 
     else :
 
@@ -134,19 +158,37 @@ def main() :
 
     if parameters["Reconstruction Mode"] :
 
-        if args.mode == "reconstruct" :
+        if args.mode == "reconstruct" and parameters["Mode"] == "Local" :
 
             Logger.printOperationTitle("RECONSTRUCTING")
 
             reconstructor = Reconstructor.Reconstructor(parameters["Reconstruction Parameter File"])
 
-        elif args.mode == "scan" :
+        elif args.mode == "reconstruct" and parameters["Mode"] == "Cloud based" :
+
+            Logger.printOperationTitle("RECONSTRUCTING")
+
+            sk = Socket.Socket(parameters["Address"], parameters["Port"], parameters["Reconstruction Parameter File"].replace("rconfig.json", ""))
+            sk.run()
+
+        elif args.mode == "scan":
 
             rsr.close()
 
             Logger.printOperationTitle("RECONSTRUCTING")
+            
+            useCloud = input("Local reconstruction (0) or cloud based reconstruction (1) ?")
 
-            reconstructor = Reconstructor.Reconstructor(os.path.join(rsr.rootDir, "rconfig.json"))
+            if not useCloud :
+                reconstructor = Reconstructor.Reconstructor(os.path.join(rsr.rootDir, "rconfig.json"))
+
+            else :
+                address = input("IP address ?")
+                port = input("Port ?")
+                folder = input("Dataset folder ?")
+
+                sk = Socket.Socket(address, port, folder)
+                sk.run()
 
 
 

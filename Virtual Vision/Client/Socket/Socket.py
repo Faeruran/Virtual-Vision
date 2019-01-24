@@ -125,6 +125,7 @@ class Socket :
 
             self.newReconstruction()
             Logger.printInfo("Closing connection ...")
+            self.socket.send("Disconnect".encode("UTF-8"))
             self.socket.close()
             Logger.printSuccess("Connection successfully closed !")
 

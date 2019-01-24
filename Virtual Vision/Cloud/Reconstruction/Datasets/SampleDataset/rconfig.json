@@ -1,0 +1,23 @@
+{
+    "Name": "Test",
+    "Dataset Path": "/home/faeruran/Bureau/Files/Test",
+    "Intrinsics Path": "/home/faeruran/Bureau/Files/Test/Intrinsics.json",
+    "Shard Size": 70,
+    "Min Depth": 0.2,
+    "Max Depth": 1.8,
+    "Voxel Size": 0.03,
+    "Max Depth Difference": 0.07,
+    "Edge Prune Threshold": 0.25,
+    "Preference Loop Closure": 0.1,
+    "Comparison Range": 3,
+    "Voxel Length": 0.005859375,
+    "SDF Trunc": 0.04,
+    "Volume Unit Resolution": 16,
+    "Depth Sampling Stride": 4,
+    "Correspondence Ratio": 0.9,
+    "Max Iterations": 4000000,
+    "Max Validation": 500,
+    "Relative Fitness": 1e-06,
+    "Relative RMSE": 1e-06,
+    "Dataset Size": 1810
+}
