@@ -36,7 +36,8 @@ class RealSenseRecorder(object):
             "Max Iterations" : 4000000,
             "Max Validation" : 500,
             "Relative Fitness" : 1e-6,
-            "Relative RMSE" : 1e-6
+            "Relative RMSE" : 1e-6,
+            "Dataset Size" : len(self.depthDataset)
         }
 
         with open(os.path.join(self.rootDir, "rconfig.json"), "w") as jsonFile :
