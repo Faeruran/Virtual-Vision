@@ -23,7 +23,7 @@ def main() :
 
     rootDir = os.path.join(os.path.join(os.path.join(os.environ["HOME"]), "Bureau"), "Workspace")
 
-    parser = argparse.ArgumentParser(description="Virtual Vision v0.1")
+    parser = argparse.ArgumentParser(description="Virtual Vision v0.1 - Client")
     modes = parser.add_subparsers(title = "Operating Mode", dest="mode", help="Scan or Reconstruct")
     scanParser = modes.add_parser("scan", help="Scanning mode")
     scanLoadGroup = scanParser.add_argument_group(title="Automatic Configuration (JSON importation)")
@@ -90,8 +90,8 @@ def main() :
 
         else :
 
-            parameters["Address"] = args.address
-            parameters["Port"] = args.port
+            parameters["Address"] = args.address[0] if not isinstance(type(args.address), str) else args.address
+            parameters["Port"] = args.port[0] if not isinstance(type(args.port), str) else args.port
 
     else :
 

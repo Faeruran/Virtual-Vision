@@ -3,8 +3,11 @@ import sys
 import multiprocessing as mp
 import json
 import os
+import time
 sys.path.append("../Utils/")
 from Logger import Logger
+sys.path.append("../Reconstruction")
+import Reconstructor
 
 class Socket :
 
@@ -28,8 +31,22 @@ class Socket :
         Logger.printSuccess("Configuration file successfully received !")
 
         configFile = json.loads(str(configFile).replace("'", '"'))
+        projectName = configFile["Name"]
+
+        if not os.path.exists(os.path.join(self.workspaceDirectory, projectName)) :
+            os.mkdir(os.path.join(self.workspaceDirectory, projectName))
+        else :
+            projectName = projectName + "-" + str(int(time.time()))
+            os.mkdir(os.path.join(self.workspaceDirectory, projectName))
+            configFile["Name"] = projectName
+            
+        
+        projectDirectory = os.path.join(self.workspaceDirectory, projectName)
+
+        configFile["Dataset Path"] = projectDirectory
+        configFile["Intrinsics Path"] = os.path.join(projectDirectory, "Intrinsics.json")
                 
-        with open(os.path.join(self.projectDirectory, "rconfig.json"), "w") as jsonFile :
+        with open(os.path.join(projectDirectory, "rconfig.json"), "w") as jsonFile :
             json.dump(configFile, jsonFile, indent=4)
 
         datasetSize = int(configFile["Dataset Size"])
@@ -37,11 +54,11 @@ class Socket :
         #Send ACK for config file
         connection.send("ACK CF".encode("UTF-8"))
 
-        return datasetSize
+        return datasetSize, projectDirectory
 
 
 
-    def initIntrinsicsFile(self, connection) :
+    def initIntrinsicsFile(self, connection, projectDirectory) :
 
         #Receive intrinsics file size
         size = int(connection.recv(1024).decode("UTF-8"))
@@ -52,15 +69,15 @@ class Socket :
         Logger.printSuccess("Intrinsics file successfully received !")
         intrinsicsFile = json.loads(str(intrinsicsFile).replace("'", '"'))
 
-        with open(os.path.join(self.projectDirectory, "Intrinsics.json"), "w") as jsonFile :
+        with open(os.path.join(projectDirectory, "Intrinsics.json"), "w") as jsonFile :
             json.dump(intrinsicsFile, jsonFile, indent=4)
 
 
 
-    def initDataset(self, connection, datasetSize) :
+    def initDataset(self, connection, datasetSize, projectDirectory) :
 
-        depthPath = os.path.join(self.projectDirectory, "Depth")
-        colorPath = os.path.join(self.projectDirectory, "Color")
+        depthPath = os.path.join(projectDirectory, "Depth")
+        colorPath = os.path.join(projectDirectory, "Color")
                 
         if not os.path.exists(depthPath) :
             os.mkdir(depthPath)
@@ -115,11 +132,13 @@ class Socket :
 
         Logger.printInfo("Starting a new reconstruction !")
 
-        datasetSize = self.initConfigFile(connection)
+        datasetSize, projectDirectory = self.initConfigFile(connection)
 
-        self.initIntrinsicsFile(connection)
+        self.initIntrinsicsFile(connection, projectDirectory)
         
-        self.initDataset(connection, datasetSize)
+        self.initDataset(connection, datasetSize, projectDirectory)
+
+        reconstructor = Reconstructor.Reconstructor(os.path.join(projectDirectory, "rconfig.json"))
 
         connection.send("End".encode("UTF-8"))
 
@@ -164,11 +183,11 @@ class Socket :
 
 
 
-    def __init__(self, address, port, projectDirectory) :
+    def __init__(self, address, port, workspaceDirectory) :
 
         self.address = address
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        self.projectDirectory = projectDirectory
+        self.workspaceDirectory = workspaceDirectory
