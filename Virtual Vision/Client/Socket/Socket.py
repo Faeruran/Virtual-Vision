@@ -135,6 +135,22 @@ class Socket :
                 Logger.printError("No project directory called : " + self.datasetName + " found in the workspace ...")
 
 
+
+    def listDatasets(self) :
+
+        self.socket.send("List Datasets".encode("UTF-8"))
+        
+        size = int(self.socket.recv(1024).decode("UTF-8"))
+
+        self.socket.send("ACK Size".encode("UTF-8"))
+
+        data = self.socket.recv(size).decode("UTF-8")
+        data = json.loads(data)
+
+        for i in range(len(data)) :
+            Logger.printParameters(data[i]["Name"], data[i])
+
+
     def run(self, operation) :
         
         connected = self.connect()
@@ -146,6 +162,9 @@ class Socket :
 
             if operation == "Merge Shards" :
                 self.mergeShards()
+
+            if operation == "List" :
+                self.listDatasets()
 
             Logger.printInfo("Closing connection ...")
             self.socket.send("Disconnect".encode("UTF-8"))

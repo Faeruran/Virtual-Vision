@@ -261,6 +261,14 @@ class Reconstructor(object) :
             self.shardSize = int(self.datasetLength / self.numCPU)
             Logger.printInfo("Shard size set to " + str(self.shardSize))
 
+            with open(os.path.join(self.parameters["datasetPath"], "rconfig.json"), "r") as file :
+                configFile = json.load(file)
+            
+            with open(os.path.join(self.parameters["datasetPath"], "rconfig.json"), "w") as file :
+                configFile["Shard Size"] = self.shardSize
+                json.dump(configFile, file, indent=4)
+
+
 
         self.numShards = ceil(float(self.datasetLength / self.shardSize))
         Logger.printInfo("Number of shards : " + str(self.numShards))

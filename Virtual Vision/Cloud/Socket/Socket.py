@@ -4,6 +4,7 @@ import multiprocessing as mp
 import json
 import os
 import time
+import datetime
 sys.path.append("../Utils/")
 from Logger import Logger
 sys.path.append("../Reconstruction")
@@ -175,6 +176,40 @@ class Socket :
             connection.send("KO".encode("UTF-8"))
 
         
+    def listDatasets(self, connection) :
+        
+        datasetsList = self.getProjectsList()
+        result = []
+
+        for dataset in datasetsList :
+
+            with open(os.path.join(*[self.workspaceDirectory, dataset, "rconfig.json"])) as file:
+
+                    configFile = json.load(file)
+
+                    shardFileList = os.listdir(configFile["Dataset Path"])
+                    shardFileList = sorted([element for element in shardFileList if (".ply" in element and "Result" not in element)])
+
+                    temp = {
+                        "Name" : configFile["Name"],
+                        "Date" : datetime.datetime.fromtimestamp(int(configFile["Date"])).strftime("%Y-%m-%d %H:%M:%S"),
+                        "Size" : int(configFile["Dataset Size"]),
+                        "Shard Size" : int(configFile["Shard Size"]),
+                        "Number Of Shards" : len(shardFileList),
+                        "Successfully Reconstructed" : True if "Result.ply" in os.listdir(configFile["Dataset Path"]) else False
+                    }
+
+                    result.append(temp)
+        
+        stringVersion = json.dumps(result)
+        length = len(stringVersion)
+        connection.send(str(length).encode("UTF-8"))
+        data = connection.recv(1024).decode("UTF-8")
+
+        if data == "ACK Size" :
+            connection.send(stringVersion.encode("UTF-8"))
+
+
 
     def requestManager(self, connection, address) :
 
@@ -188,23 +223,23 @@ class Socket :
 
                 self.newReconstruction(connection)
 
-            if data == "New Detection" :
+            elif data == "New Detection" :
 
                 pass
 
-            if data == "Merge Shards" :
+            elif data == "Merge Shards" :
 
                 self.mergeShards(connection)
 
-            if data == "List Datasets" :
+            elif data == "List Datasets" :
 
-                pass
+                self.listDatasets(connection)
 
-            if data == "Remove Dataset" :
+            elif data == "Remove Dataset" :
 
                 pass
             
-            if data == "Get Result" :
+            elif data == "Get Result" :
 
                 pass
 

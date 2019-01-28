@@ -19,6 +19,7 @@ class RealSenseRecorder(object):
         temp =  {
             "Name" : self.captureName,
             "Dataset Path" : self.rootDir,
+            "Date" : self.captureName,
             "Intrinsics Path" : os.path.join(self.rootDir, "Intrinsics.json"),
             "Shard Size" : 70,
             "Min Depth" : 0.2,

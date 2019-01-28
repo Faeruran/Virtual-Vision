@@ -221,8 +221,7 @@ class ShardAssembler(object) :
 
         self.results = []
 
-        Logger.printInfo("Registrating shards ...")
-        print(len(self.blends))
+        Logger.printInfo("Registrating shards (" + str(len(self.blends)) + "operations) ...")
 
         for blend in self.blends :
 

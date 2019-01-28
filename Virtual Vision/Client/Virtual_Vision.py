@@ -29,10 +29,6 @@ def main() :
     scanLoadGroup = scanParser.add_argument_group(title="Automatic Configuration (JSON importation)")
     scanManualGroup = scanParser.add_argument_group(title="Manual Settings")
     reconstructParser = modes.add_parser("reconstruct", help="Reconstruction mode")
-    """
-    reconstructCloudManualGroup = reconstructParser.add_argument_group(title="Cloud based reconstruction manual settings")
-    reconstructCloudLoadGroup = reconstructParser.add_argument_group(title="Cloud based reconstruction automatic configuration (JSON importation)")
-    """
     cloudParser = modes.add_parser("cloud", help="Cloud based interaction and processing")
 
 
@@ -53,7 +49,6 @@ def main() :
     scanManualGroup.add_argument("--gain", action="store", nargs=1, default=[16], type=int, required=False, help="RealSense sensor gain. Default : 16")
 
     reconstructParser.add_argument("--rconfig", action="store", nargs=1, default="", type=str, required=True, help="Import a JSON dataset reconstruction settings file : path")
-    #reconstructParser.add_argument("--cloud", action="store", nargs=1, default=[1], type=int, required=False, help="Export the reconstruction process to a cloud infrastructure. Default : 1")
 
     cloudParser.add_argument("--address", action="store", nargs=1, default=[], type=str, required=False, help="Cloud server's IP address.")
     cloudParser.add_argument("--port", action="store", nargs=1, default=[], type=str, required=False, help="Cloud server's port.")
@@ -62,7 +57,6 @@ def main() :
     cloudParser.add_argument("--remove", action="store", nargs=1, default=[], type=str, required=False, help="Removes one dataset present on the cloud by specifying its name")
     cloudParser.add_argument("--getresult", action="store", nargs=1, default=[], type=str, required=False, help="Downloads the point cloud of the specified reconstructed dataset (name)")
     cloudParser.add_argument("--mergeshards", action="store", nargs=1, default=[], type=str, required=False, help="Merges the shards of the specified dataset (name). Works only if the reconstruction ended before successfully merging the shards")
-    #reconstructCloudLoadGroup.add_argument("--cconfig", action="store", nargs=1, default="", type=str, required=False, help="Import a JSON cloud settings file : path")
 
     args = parser.parse_args()
 
