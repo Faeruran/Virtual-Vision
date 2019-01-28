@@ -17,7 +17,9 @@ def main() :
     os.system("clear")
 
     #workspaceDir = os.path.join(os.path.join(os.environ["HOME"]), "Workspace")
-    workspaceDir = "/tmp/"
+    workspaceDir = "/tmp/Workspace"
+    if not os.path.exists(workspaceDir) :
+            os.mkdir(workspaceDir)
 
     parser = argparse.ArgumentParser(description="Virtual Vision v0.1 - Cloud")
 

@@ -117,13 +117,36 @@ class Socket :
 
 
 
-    def run(self) :
+    def mergeShards(self) :
+
+        self.socket.send("Merge Shards".encode("UTF-8"))
+
+        answer = self.socket.recv(1024).decode("UTF-8")
+        
+        if answer == "Dataset name ?" :
+
+            self.socket.send(self.datasetName.encode("UTF-8"))
+
+            answer = self.socket.recv(1024).decode("UTF-8")
+            
+            if answer == "OK" :
+                Logger.printSuccess("Shard merging request successfully sent")
+            else :
+                Logger.printError("No project directory called : " + self.datasetName + " found in the workspace ...")
+
+
+    def run(self, operation) :
         
         connected = self.connect()
 
         if connected :
 
-            self.newReconstruction()
+            if operation == "Reconstruction" :
+                self.newReconstruction()
+
+            if operation == "Merge Shards" :
+                self.mergeShards()
+
             Logger.printInfo("Closing connection ...")
             self.socket.send("Disconnect".encode("UTF-8"))
             self.socket.close()
@@ -131,11 +154,35 @@ class Socket :
 
 
 
-    def __init__(self, address, port, projectDirectory) :
+    def __init__(self, parameters) :
 
-        self.address = address
-        self.port = port
+        self.address = parameters["Address"]
+        self.port = parameters["Port"]
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        self.projectDirectory = projectDirectory
+        if parameters["Operation"] == "Reconstruction" :
+
+            self.projectDirectory = parameters["Reconstruction Parameter File"].replace("rconfig.json", "")
+            self.run(parameters["Operation"])
+
+        elif parameters["Operation"] == "List" :
+
+            self.run(parameters["Operation"])
+        
+        elif parameters["Operation"] == "Remove" :
+
+            self.datasetName = parameters["Dataset To Remove"]
+            self.run(parameters["Operation"])
+
+        elif parameters["Operation"] == "Download Result" :
+
+            self.datasetName = parameters["Dataset Result To Download"]
+            self.run(parameters["Operation"])
+
+        elif parameters["Operation"] == "Merge Shards" :
+
+            self.datasetName = parameters["Dataset Shards To Merge"]
+            self.run(parameters["Operation"])
+
+        

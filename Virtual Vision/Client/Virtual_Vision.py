@@ -4,12 +4,12 @@ import atexit
 import os
 import sys
 import json
-import pyrealsense2 as rs2
+#import pyrealsense2 as rs2
 import time
 sys.path.append("./Utils/")
 from Logger import Logger
 sys.path.append("./Scan/")
-import RealSenseRecorder
+#import RealSenseRecorder
 sys.path.append("./Reconstruction/")
 import Reconstructor
 import ShardAssembler
@@ -24,18 +24,23 @@ def main() :
     rootDir = os.path.join(os.path.join(os.path.join(os.environ["HOME"]), "Bureau"), "Workspace")
 
     parser = argparse.ArgumentParser(description="Virtual Vision v0.1 - Client")
-    modes = parser.add_subparsers(title = "Operating Mode", dest="mode", help="Scan or Reconstruct")
+    modes = parser.add_subparsers(title = "Operating Mode", dest="mode", help="Scan, Reconstruct or Cloud")
     scanParser = modes.add_parser("scan", help="Scanning mode")
     scanLoadGroup = scanParser.add_argument_group(title="Automatic Configuration (JSON importation)")
     scanManualGroup = scanParser.add_argument_group(title="Manual Settings")
     reconstructParser = modes.add_parser("reconstruct", help="Reconstruction mode")
+    """
     reconstructCloudManualGroup = reconstructParser.add_argument_group(title="Cloud based reconstruction manual settings")
     reconstructCloudLoadGroup = reconstructParser.add_argument_group(title="Cloud based reconstruction automatic configuration (JSON importation)")
+    """
+    cloudParser = modes.add_parser("cloud", help="Cloud based interaction and processing")
+
 
     scanParser.add_argument("--nsec", action="store", nargs=1, default=[0], type=int, required=False, help="Scan duration in seconds (0 for unlimited, press Q to quit). Default : 0")
     scanParser.add_argument("--workspace", action="store", nargs=1, default=rootDir, type=str, required=False, help="Path of the workspace, where the dataset will be saved. Default : 'USER/Desktop/Workspace'")
     scanParser.add_argument("--sharpening", action="store", nargs=1, default=[0], type=int, required=False, help="Allows to sharpen the images in order to reduce the impact of the motion blur. Default : 0")
     scanParser.add_argument("--autoreconstruct", action="store", nargs=1, default=[1], type=int, required=False, help="Automatically reconstruct the dataset after the scan. Default : 1")
+    scanParser.add_argument("--depthanalysis", action="store", nargs=1, default=[0], type=int, required=False, help="Process the dataset in order to estimate the coverage of the depth frames. Default : 0")
 
     scanLoadGroup.add_argument("--sconfig", action="store", nargs=1, type=str, required=False, help="Import a JSON RealSense configuration file (instead of Manual Settings, can be generated using the RealSense SDK) : path")
 
@@ -47,13 +52,17 @@ def main() :
     scanManualGroup.add_argument("--exposure", action="store", nargs=1, default=[3200], type=int, required=False, help="Exposure time of the RealSense sensor. Default : 3200")
     scanManualGroup.add_argument("--gain", action="store", nargs=1, default=[16], type=int, required=False, help="RealSense sensor gain. Default : 16")
 
-    reconstructParser.add_argument("--rconfig", action="store", nargs=1, default="", type=str, required=True, help="Import a JSON dataset parameter file : path")
-    reconstructParser.add_argument("--cloud", action="store", nargs=1, default=[1], type=int, required=False, help="Export the reconstruction process to a cloud infrastructure. Default : 1")
+    reconstructParser.add_argument("--rconfig", action="store", nargs=1, default="", type=str, required=True, help="Import a JSON dataset reconstruction settings file : path")
+    #reconstructParser.add_argument("--cloud", action="store", nargs=1, default=[1], type=int, required=False, help="Export the reconstruction process to a cloud infrastructure. Default : 1")
 
-    reconstructCloudManualGroup.add_argument("--address", action="store", nargs=1, default="192.168.100.156", type=str, required=False, help="Reconstruction server's IP address.")
-    reconstructCloudManualGroup.add_argument("--port", action="store", nargs=1, default="55555", type=str, required=False, help="Reconstruction server's port.")
-
-    reconstructCloudLoadGroup.add_argument("--cconfig", action="store", nargs=1, default="", type=str, required=False, help="Import a JSON cloud settings file : path")
+    cloudParser.add_argument("--address", action="store", nargs=1, default=[], type=str, required=False, help="Cloud server's IP address.")
+    cloudParser.add_argument("--port", action="store", nargs=1, default=[], type=str, required=False, help="Cloud server's port.")
+    cloudParser.add_argument("--reconstruct", action="store", nargs=1, default=[], type=str, required=False, help="Cloud based reconstruction, using the specified reconstruction settings file : path")
+    cloudParser.add_argument("--list", action="store", nargs=1, default=[0], type=int, required=False, help="Displays the name of the dataset present on the cloud.")
+    cloudParser.add_argument("--remove", action="store", nargs=1, default=[], type=str, required=False, help="Removes one dataset present on the cloud by specifying its name")
+    cloudParser.add_argument("--getresult", action="store", nargs=1, default=[], type=str, required=False, help="Downloads the point cloud of the specified reconstructed dataset (name)")
+    cloudParser.add_argument("--mergeshards", action="store", nargs=1, default=[], type=str, required=False, help="Merges the shards of the specified dataset (name). Works only if the reconstruction ended before successfully merging the shards")
+    #reconstructCloudLoadGroup.add_argument("--cconfig", action="store", nargs=1, default="", type=str, required=False, help="Import a JSON cloud settings file : path")
 
     args = parser.parse_args()
 
@@ -62,6 +71,7 @@ def main() :
         parameters = {
             "Scanning Mode" : True,
             "Reconstruction Mode" : bool(args.autoreconstruct[0]),
+            "Cloud Mode" : False,
             "Scan Duration (s)" : args.nsec[0],
             "Workspace Root" : '"' + args.workspace + '"',
             "Sharpening RGB Frames" : bool(args.sharpening[0]),
@@ -70,32 +80,62 @@ def main() :
 
     elif args.mode == "reconstruct" :
 
-        args.reconstruct = True
-
         parameters = {
             "Scanning Mode" : False,
             "Reconstruction Mode" : True,
-            "Reconstruction Parameter File" : args.rconfig[0] ,
-            "Mode" : "Local" if not bool(args.cloud[0]) else "Cloud based",
-            "Cloud Configuration File" : '"' + args.cconfig[0] + '"' if args.cconfig else '""'
+            "Cloud Mode" : False,
+            "Reconstruction Parameter File" : args.rconfig[0]
+            }
+        
+    elif args.mode == "cloud" :
+
+        parameters = {
+            "Scanning Mode" : False,
+            "Reconstruction Mode" : False,
+            "Cloud Mode" : True
             }
 
-        if args.cconfig :
+        if args.address and args.port :
 
-            with open(parameters["Cloud Configuration File"]) as file :
-                jsonFile = json.load(file)
-
-            parameters["Address"] = jsonFile["Address"]
-            parameters["Port"] = jsonFile["Port"]
+            parameters["Address"] = args.address[0]
+            parameters["Port"] = args.port[0]
 
         else :
 
-            parameters["Address"] = args.address[0] if not isinstance(type(args.address), str) else args.address
-            parameters["Port"] = args.port[0] if not isinstance(type(args.port), str) else args.port
+            with open("config.json") as file :
+                jsonFile = json.load(file)
+
+                parameters["Address"] = jsonFile["Cloud Address"]
+                parameters["Port"] = jsonFile["Cloud Port"]
+
+        if args.reconstruct :
+            parameters["Operation"] = "Reconstruction"
+            parameters["Reconstruction Parameter File"] = args.reconstruct[0]
+        
+        elif args.list[0] : 
+            parameters["Operation"] = "List"
+        
+        elif args.remove :
+            parameters["Operation"] = "Remove"
+            parameters["Dataset To Remove"] = args.remove[0]
+
+        elif args.getresult :
+            parameters["Operation"] = "Download Result"
+            parameters["Dataset Result To Download"] = args.getresult[0]
+
+        elif args.mergeshards :
+            parameters["Operation"] = "Merge Shards"
+            parameters["Dataset Shards To Merge"] = args.mergeshards[0]
+
+        else :
+            Logger.printError("No operation selected, quitting ...")
+            exit()
+        
+
 
     else :
 
-        Logger.printError("Please use scan or reconstruct")
+        Logger.printError("Please use scan, reconstruct or cloud")
         exit()
 
     Logger.printParameters("PARAMETERS", parameters)
@@ -154,44 +194,32 @@ def main() :
         rsr.scan()
         rsr.writeReconstructionParametersFile()
         atexit.register(rsr.close)
-        rsr.getDatasetDepthQuality()
+        if args.depthanalysis :
+            rsr.getDatasetDepthQuality()
+
+
+
 
     if parameters["Reconstruction Mode"] :
 
-        if args.mode == "reconstruct" and parameters["Mode"] == "Local" :
+        if args.mode == "reconstruct" :
 
             Logger.printOperationTitle("RECONSTRUCTING")
 
             reconstructor = Reconstructor.Reconstructor(parameters["Reconstruction Parameter File"])
-
-        elif args.mode == "reconstruct" and parameters["Mode"] == "Cloud based" :
-
-            Logger.printOperationTitle("RECONSTRUCTING")
-
-            sk = Socket.Socket(parameters["Address"], parameters["Port"], parameters["Reconstruction Parameter File"].replace("rconfig.json", ""))
-            sk.run()
 
         elif args.mode == "scan":
 
             rsr.close()
 
             Logger.printOperationTitle("RECONSTRUCTING")
-            
-            useCloud = input("Local reconstruction (0) or cloud based reconstruction (1) ?")
 
-            if not useCloud :
-                reconstructor = Reconstructor.Reconstructor(os.path.join(rsr.rootDir, "rconfig.json"))
+            reconstructor = Reconstructor.Reconstructor(os.path.join(rsr.rootDir, "rconfig.json"))
 
-            else :
-                address = input("IP address ?")
-                port = input("Port ?")
-                folder = input("Dataset folder ?")
+    
+    if parameters["Cloud Mode"] :
 
-                sk = Socket.Socket(address, port, folder)
-                sk.run()
-
-
-
+        sk = Socket.Socket(parameters)
 
 
 if __name__ == "__main__" :

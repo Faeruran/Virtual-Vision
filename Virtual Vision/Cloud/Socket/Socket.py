@@ -128,6 +128,21 @@ class Socket :
 
 
 
+    def getProjectsList(self) :
+
+        temp = []
+
+        for dir in os.listdir(self.workspaceDirectory) :
+
+            print(os.path.join(*[self.workspaceDirectory, dir, "rconfig.json"]))
+
+            if os.path.isfile(os.path.join(*[self.workspaceDirectory, dir, "rconfig.json"])) :
+                temp.append(dir)
+
+        return temp
+
+
+
     def newReconstruction(self, connection) :
 
         Logger.printInfo("Starting a new reconstruction !")
@@ -138,9 +153,26 @@ class Socket :
         
         self.initDataset(connection, datasetSize, projectDirectory)
 
-        reconstructor = Reconstructor.Reconstructor(os.path.join(projectDirectory, "rconfig.json"))
+        reconstructor = Reconstructor.Reconstructor(os.path.join(projectDirectory, "rconfig.json"), mergeOnly=False)
 
         connection.send("End".encode("UTF-8"))
+
+
+
+    def mergeShards(self, connection) :
+
+        connection.send("Dataset name ?".encode("UTF-8"))
+
+        datasetName = connection.recv(1024).decode("UTF-8")
+
+        projectsList = self.getProjectsList()
+        print(projectsList)
+        if datasetName in projectsList :
+            connection.send("OK".encode("UTF-8"))
+            reconstructor = Reconstructor.Reconstructor(os.path.join(*[self.workspaceDirectory, datasetName, "rconfig.json"]), mergeOnly=True)
+
+        else :
+            connection.send("KO".encode("UTF-8"))
 
         
 
@@ -157,6 +189,22 @@ class Socket :
                 self.newReconstruction(connection)
 
             if data == "New Detection" :
+
+                pass
+
+            if data == "Merge Shards" :
+
+                self.mergeShards(connection)
+
+            if data == "List Datasets" :
+
+                pass
+
+            if data == "Remove Dataset" :
+
+                pass
+            
+            if data == "Get Result" :
 
                 pass
 

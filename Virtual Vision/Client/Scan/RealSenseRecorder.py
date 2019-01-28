@@ -37,7 +37,7 @@ class RealSenseRecorder(object):
             "Max Validation" : 500,
             "Relative Fitness" : 1e-6,
             "Relative RMSE" : 1e-6,
-            "Dataset Size" : len(self.depthDataset)
+            "Dataset Size" : self.datasetSize
         }
 
         with open(os.path.join(self.rootDir, "rconfig.json"), "w") as jsonFile :
@@ -187,6 +187,7 @@ class RealSenseRecorder(object):
                     frame = temporalFilter.process(frame)
                     frame = disparityDepthfilter.process(frame)
 
+                    self.datasetSize += 1
 
                     cv2.imwrite(depthPath, np.asanyarray(frame.data))
                     cv2.imwrite(colorPath, colorImage)
@@ -229,6 +230,7 @@ class RealSenseRecorder(object):
                     frame = temporalFilter.process(frame)
                     frame = disparityDepthfilter.process(frame)
 
+                    self.datasetSize += 1
 
                     cv2.imwrite(depthPath, np.asanyarray(frame.data))
                     cv2.imwrite(colorPath, colorImage)
@@ -382,5 +384,5 @@ class RealSenseRecorder(object):
         self.aligner = rs2.align(rs2.stream.color)
 
         Logger.printSuccess("Scanner successfully initialized !")
-
+        self.datasetSize = 0
         self.depthDataset = []

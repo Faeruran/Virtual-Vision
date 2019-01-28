@@ -231,7 +231,20 @@ class Reconstructor(object) :
 
 
 
-    def __init__(self, paramFile) :
+    def initDatasetBoundaries(self) :
+
+        temp = []
+
+        for i in range(self.numShards) :
+
+            if i * self.shardSize < self.datasetLength :
+                temp.append((i * self.shardSize))
+
+        return temp
+
+
+
+    def __init__(self, paramFile, mergeOnly) :
 
         set_verbosity_level(VerbosityLevel.Error)
 
@@ -252,13 +265,24 @@ class Reconstructor(object) :
         self.numShards = ceil(float(self.datasetLength / self.shardSize))
         Logger.printInfo("Number of shards : " + str(self.numShards))
         self.datasetSizes = []
+        
+        if not mergeOnly :
 
-        self.processList = []
-        self.controlQueues = []
-        self.answerQueues = []
+            self.processList = []
+            self.controlQueues = []
+            self.answerQueues = []
 
-        self.createShards()
+            self.createShards()
 
-        self.shards = []
-        self.importShards()
-        self.assembler = ShardAssembler.ShardAssembler(self.parameters, self.shards, self.datasetSizes)
+            self.shards = []
+            self.importShards()
+            self.assembler = ShardAssembler.ShardAssembler(self.parameters, self.shards, self.datasetSizes)
+        
+        else :
+
+            self.shards = []
+            self.importShards()
+
+            temp = self.initDatasetBoundaries()
+            print(temp)
+            self.assembler = ShardAssembler.ShardAssembler(self.parameters, self.shards, temp)
