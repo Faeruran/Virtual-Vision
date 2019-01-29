@@ -151,6 +151,65 @@ class Socket :
             Logger.printParameters(data[i]["Name"], data[i])
 
 
+
+    def removeDataset(self) :
+
+        self.socket.send("Remove Dataset".encode("UTF-8"))
+
+        answer = self.socket.recv(1024).decode("UTF-8")
+        
+        if answer == "Dataset name ?" :
+
+            self.socket.send(self.datasetName.encode("UTF-8"))
+
+            answer = self.socket.recv(1024).decode("UTF-8")
+            
+            if answer == "OK" :
+                Logger.printSuccess("Dataset removal request successfully sent")
+            else :
+                Logger.printError("No project directory called : " + self.datasetName + " found in the workspace ...")
+
+
+
+    def downloadResult(self) :
+
+        self.socket.send("Download Result".encode("UTF-8"))
+
+        answer = self.socket.recv(1024).decode("UTF-8")
+        
+        if answer == "Dataset name ?" :
+
+            self.socket.send(self.datasetName.encode("UTF-8"))
+
+            answer = self.socket.recv(1024).decode("UTF-8")
+
+            if answer == "KO" :
+
+                Logger.printError("No project directory called : " + self.datasetName + " found in the workspace ...")
+
+            elif answer == "Not yet" :
+
+                Logger.printError("The dataset has not been successfully reconstructed yet. Try --reconstruct or --mergeshards ...")
+
+            else :
+
+                size = int(answer)
+                self.socket.send("ACK Size".encode("UTF-8"))
+
+                result = b""
+                while len(result) < size :
+                    
+                    temp = self.socket.recv(size - len(result))
+                    if temp :
+                        result += temp
+
+                path = input("Result file path (without *.ply) ? ")
+
+                with open(os.path.join(path, self.datasetName + ".ply"), "wb") as file :
+                    file.write(result)
+
+
+
     def run(self, operation) :
         
         connected = self.connect()
@@ -165,6 +224,12 @@ class Socket :
 
             if operation == "List" :
                 self.listDatasets()
+
+            if operation == "Remove" :
+                self.removeDataset()
+
+            if operation == "Download Result" :
+                self.downloadResult()
 
             Logger.printInfo("Closing connection ...")
             self.socket.send("Disconnect".encode("UTF-8"))

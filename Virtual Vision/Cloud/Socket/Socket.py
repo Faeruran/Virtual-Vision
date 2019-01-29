@@ -5,6 +5,7 @@ import json
 import os
 import time
 import datetime
+import shutil
 sys.path.append("../Utils/")
 from Logger import Logger
 sys.path.append("../Reconstruction")
@@ -135,8 +136,6 @@ class Socket :
 
         for dir in os.listdir(self.workspaceDirectory) :
 
-            print(os.path.join(*[self.workspaceDirectory, dir, "rconfig.json"]))
-
             if os.path.isfile(os.path.join(*[self.workspaceDirectory, dir, "rconfig.json"])) :
                 temp.append(dir)
 
@@ -154,9 +153,9 @@ class Socket :
         
         self.initDataset(connection, datasetSize, projectDirectory)
 
-        reconstructor = Reconstructor.Reconstructor(os.path.join(projectDirectory, "rconfig.json"), mergeOnly=False)
-
         connection.send("End".encode("UTF-8"))
+
+        reconstructor = Reconstructor.Reconstructor(os.path.join(projectDirectory, "rconfig.json"), mergeOnly=False)
 
 
 
@@ -167,13 +166,14 @@ class Socket :
         datasetName = connection.recv(1024).decode("UTF-8")
 
         projectsList = self.getProjectsList()
-        print(projectsList)
+        
         if datasetName in projectsList :
             connection.send("OK".encode("UTF-8"))
             reconstructor = Reconstructor.Reconstructor(os.path.join(*[self.workspaceDirectory, datasetName, "rconfig.json"]), mergeOnly=True)
 
         else :
             connection.send("KO".encode("UTF-8"))
+
 
         
     def listDatasets(self, connection) :
@@ -211,6 +211,53 @@ class Socket :
 
 
 
+    def removeDataset(self, connection) :
+
+        connection.send("Dataset name ?".encode("UTF-8"))
+
+        datasetName = connection.recv(1024).decode("UTF-8")
+
+        projectsList = self.getProjectsList()
+        
+        if datasetName in projectsList :
+            connection.send("OK".encode("UTF-8"))
+            shutil.rmtree(os.path.join(self.workspaceDirectory, datasetName))
+        else :
+            connection.send("KO".encode("UTF-8"))
+
+
+
+    def sendResult(self, connection) :
+
+        connection.send("Dataset name ?".encode("UTF-8"))
+
+        datasetName = connection.recv(1024).decode("UTF-8")
+
+        projectsList = self.getProjectsList()
+        
+        if datasetName in projectsList and "Result.ply" in os.listdir(os.path.join(self.workspaceDirectory, datasetName)) :
+
+            with open(os.path.join(*[self.workspaceDirectory, datasetName, "Result.ply"]), "rb") as file :
+                result = file.read()
+
+            connection.send(str(len(result)).encode("UTF-8"))
+
+            data = connection.recv(1024).decode("UTF-8")
+
+            if data == "ACK Size" :
+
+                connection.sendall(result)
+
+        elif datasetName in projectsList and not "Result.ply" in os.listdir(os.path.join(self.workspaceDirectory, datasetName)) :
+        
+            connection.send("Not yet".encode("UTF-8"))
+                
+        else :
+
+            connection.send("KO".encode("UTF-8"))
+
+
+
     def requestManager(self, connection, address) :
 
         data = ""
@@ -237,11 +284,11 @@ class Socket :
 
             elif data == "Remove Dataset" :
 
-                pass
+                self.removeDataset(connection)
             
-            elif data == "Get Result" :
+            elif data == "Download Result" :
 
-                pass
+                self.sendResult(connection)
 
 
 
