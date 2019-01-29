@@ -37,7 +37,7 @@ This project is currently being developed using the following libraries and devi
 
 ### OpenStack cloud support
 
-- [ ] Creating a Client / Server interface
+- [x] Creating a Client / Server interface
 - [ ] Enhancing the deployment of the server application
 
 ### Detection and integration of real dynamic objects
@@ -57,30 +57,51 @@ This project is currently being developed using the following libraries and devi
 - [ ] Interfacing the hardware with Unity
 - [ ] Enhancing the ergonomy
 
-## How to use
+## How to use - Cloud
 
 ```
-usage: Virtual_Vision.py [-h] {scan,reconstruct} ...
+usage: Launcher.py [-h] --address ADDRESS --port PORT [--workspace WORKSPACE]
 
-Virtual Vision v0.0
+Virtual Vision v0.1 - Cloud
 
 optional arguments:
-  -h, --help          show this help message and exit
+  -h, --help            show this help message and exit
+  --address ADDRESS     Server's IP address
+  --port PORT           Server's port
+  --workspace WORKSPACE
+                        Path of the workspace, where the datasets will be
+                        saved. Default : 'USER/Workspace'
+```
+
+## How to use - Client
+
+```
+usage: Virtual_Vision.py [-h] {scan,reconstruct,cloud} ...
+
+Virtual Vision v0.1 - Client
+
+optional arguments:
+  -h, --help            show this help message and exit
 
 Operating Mode:
-  {scan,reconstruct}  Scan or Reconstruct
-    scan              Scanning mode
-    reconstruct       Reconstruction mode
+  {scan,reconstruct,cloud}
+                        Scan, Reconstruct or Cloud
+    scan                Scanning mode
+    reconstruct         Reconstruction mode
+    cloud               Cloud based interaction and processing
 ```
 
 ### Scan parameters
 
 ```
 usage: Virtual_Vision.py scan [-h] [--nsec NSEC] [--workspace WORKSPACE]
-                              [--sharpening SHARPENING] [--sconfig SCONFIG]
-                              [--fps FPS] [--width WIDTH] [--height HEIGHT]
-                              [--vpreset VPRESET] [--laserpower LASERPOWER]
-                              [--exposure EXPOSURE] [--gain GAIN]
+                              [--sharpening SHARPENING]
+                              [--autoreconstruct AUTORECONSTRUCT]
+                              [--depthanalysis DEPTHANALYSIS]
+                              [--sconfig SCONFIG] [--fps FPS] [--width WIDTH]
+                              [--height HEIGHT] [--vpreset VPRESET]
+                              [--laserpower LASERPOWER] [--exposure EXPOSURE]
+                              [--gain GAIN]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -92,6 +113,12 @@ optional arguments:
   --sharpening SHARPENING
                         Allows to sharpen the images in order to reduce the
                         impact of the motion blur. Default : 0
+  --autoreconstruct AUTORECONSTRUCT
+                        Automatically reconstruct the dataset after the scan.
+                        Default : 1
+  --depthanalysis DEPTHANALYSIS
+                        Process the dataset in order to estimate the coverage
+                        of the depth frames. Default : 0
 
 Automatic Configuration (JSON importation):
   --sconfig SCONFIG     Import a JSON RealSense configuration file (instead of
@@ -113,14 +140,41 @@ Manual Settings:
   --gain GAIN           RealSense sensor gain. Default : 16
 ```
 
-### Reconstruction parameters
+### Reconstruction parameters (Local processing)
 
 ```
 usage: Virtual_Vision.py reconstruct [-h] --rconfig RCONFIG
 
 optional arguments:
   -h, --help         show this help message and exit
-  --rconfig RCONFIG  Import a JSON dataset parameter file : path
+  --rconfig RCONFIG  Import a JSON dataset reconstruction settings file : path
+```
+
+### Cloud parameters (Remote processing)
+
+```
+usage: Virtual_Vision.py cloud [-h] [--address ADDRESS] [--port PORT]
+                               [--reconstruct RECONSTRUCT] [--list LIST]
+                               [--remove REMOVE] [--getresult GETRESULT]
+                               [--mergeshards MERGESHARDS]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --address ADDRESS     Cloud server's IP address.
+  --port PORT           Cloud server's port.
+  --reconstruct RECONSTRUCT
+                        Cloud based reconstruction, using the specified
+                        reconstruction settings file : path
+  --list LIST           Displays the name of the dataset present on the cloud.
+  --remove REMOVE       Removes one dataset present on the cloud by specifying
+                        its name
+  --getresult GETRESULT
+                        Downloads the point cloud of the specified
+                        reconstructed dataset (name)
+  --mergeshards MERGESHARDS
+                        Merges the shards of the specified dataset (name).
+                        Works only if the reconstruction ended before
+                        successfully merging the shards
 ```
 
 Currently, Virtual-Vision allows to :
@@ -132,4 +186,33 @@ python Virtual_Vision.py scan
 2. Reconstruct a dataset by using a dataset JSON configuration file and the following command :
 ```
 python Virtual_Vision.py reconstruct --rconfig PATH_OF_CONFIG_FILE
+```
+3. Launch the cloud server by using the following command :
+```
+python Launcher.py --address ADDRESS --port PORT
+```
+4. Interact with the cloud server by using the default config.json file (no argument speficied) or the server's address and port, in addition to a command (see below)
+```
+python Virtual_Vision.py cloud --address ADDRESS --port PORT --COMMAND
+python Virtual_Vision.py cloud --COMMAND
+```
+5. Reconstruct a dataset on the cloud using the dataset JSON configuration file and the following command :
+```
+python Virtual_Vision.py cloud --reconstruct PATH_OF_CONFIG_FILE
+```
+6. List all the datasets on the cloud using the following command :
+```
+python Virtual_Vision.py cloud --list 1
+```
+7. Download the result (assembled point cloud) of a dataset by using the following command :
+```
+python Virtual_Vision.py cloud --getresult DATASET_NAME
+```
+8. Remove a dataset from the cloud's workspace by using the following command :
+```
+python Virtual_Vision.py cloud --remove DATASET_NAME
+```
+9. Merge the shards of one dataset (useful if the reconstruction process stopped before the shard assembling as it allows to skip the shard geenration process) by using the following command :
+```
+python Virtual_Vision.py cloud --mergeshards DATASET_NAME
 ```
