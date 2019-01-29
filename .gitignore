@@ -265,3 +265,4 @@ __pycache__/
 # Color and Depth images
 Color/
 Depth/
+.vscode/settings.json
