@@ -116,7 +116,6 @@ class Detector :
     def run(self, parameters) :
 
         self.pcWorld = read_point_cloud(parameters["Detection World Point Cloud"])
-        self.pcWorld.purge()
         self.pcWorld = voxel_down_sample(self.pcWorld, voxel_size=parameters["Calibration Voxel Size"])
         estimate_normals(self.pcWorld, search_param=KDTreeSearchParamHybrid(radius=parameters["Calibration Normal Radius"], max_nn=parameters["Calibration Max NN"]))
 
