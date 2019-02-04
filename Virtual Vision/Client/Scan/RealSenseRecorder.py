@@ -179,7 +179,7 @@ class RealSenseRecorder(object):
                 depthPath = os.path.join(os.path.join(self.rootDir, "Depth"), (str(counter) + ".png"))
                 colorPath = os.path.join(os.path.join(self.rootDir, "Color"), (str(counter) + ".jpg"))
 
-                if modulo % 2 == 0 :
+                if modulo % 1 == 0 :
 
                     frame = depthFrame
                     #frame = decimationFilter.process(frame)
@@ -222,7 +222,7 @@ class RealSenseRecorder(object):
                 depthPath = os.path.join(os.path.join(self.rootDir, "Depth"), (str(counter) + ".png"))
                 colorPath = os.path.join(os.path.join(self.rootDir, "Color"), (str(counter) + ".jpg"))
 
-                if modulo % 2 == 0 :
+                if modulo % 1 == 0 :
 
                     frame = depthFrame
                     #frame = decimationFilter.process(frame)

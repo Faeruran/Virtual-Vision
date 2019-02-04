@@ -42,10 +42,10 @@ This project is currently being developed using the following libraries and devi
 
 ### Detection and integration of real dynamic objects
 
-- [ ] Automatic alignment and calibration of the depth camera with the room's 3D model
-- [ ] Detection of real dynamic objects (humans, animals, vehicles, ...)
-- [ ] 3D localization of the detected objects
-- [ ] Integration of the objects within the virtual world
+- [x] Automatic alignment and calibration of the depth camera with the room's 3D model
+- [x] Detection of real dynamic objects (humans, animals, vehicles, ...)
+- [x] 3D localization of the detected objects
+- [x] Integration of the objects within the virtual world
 
 ### VR integration
 

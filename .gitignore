@@ -266,3 +266,4 @@ __pycache__/
 Color/
 Depth/
 .vscode/settings.json
+*.ply

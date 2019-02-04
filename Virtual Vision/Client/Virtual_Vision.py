@@ -15,6 +15,10 @@ import Reconstructor
 import ShardAssembler
 sys.path.append("./Socket/")
 import Socket
+sys.path.append("./Calibration/")
+import Calibrator
+sys.path.append("./Detection/")
+import Detector
 
 
 def main() :
@@ -30,6 +34,8 @@ def main() :
     scanManualGroup = scanParser.add_argument_group(title="Manual Settings")
     reconstructParser = modes.add_parser("reconstruct", help="Reconstruction mode")
     cloudParser = modes.add_parser("cloud", help="Cloud based interaction and processing")
+    calibrationParser = modes.add_parser("calibration", help="Depth camera calibration for real time 3D integration")
+    detectionParser = modes.add_parser("detection", help="Real time detection and 3D integration")
 
 
     scanParser.add_argument("--nsec", action="store", nargs=1, default=[0], type=int, required=False, help="Scan duration in seconds (0 for unlimited, press Q to quit). Default : 0")
@@ -66,11 +72,16 @@ def main() :
             "Scanning Mode" : True,
             "Reconstruction Mode" : bool(args.autoreconstruct[0]),
             "Cloud Mode" : False,
+            "Calibration Mode" : False,
+            "Detection Mode" : False,
             "Scan Duration (s)" : args.nsec[0],
             "Workspace Root" : '"' + args.workspace + '"',
             "Sharpening RGB Frames" : bool(args.sharpening[0]),
-            "RS Configuration File" : '"' + args.sconfig[0] + '"' if args.sconfig else '""'
+            "RS Configuration File" : '"' + args.sconfig[0] + '"' if args.sconfig else '""',
+            "Depth Analysis" : bool(args.depthanalysis[0])
             }
+
+
 
     elif args.mode == "reconstruct" :
 
@@ -78,15 +89,21 @@ def main() :
             "Scanning Mode" : False,
             "Reconstruction Mode" : True,
             "Cloud Mode" : False,
+            "Calibration Mode" : False,
+            "Detection Mode" : False,
             "Reconstruction Parameter File" : args.rconfig[0]
             }
-        
+
+
+
     elif args.mode == "cloud" :
 
         parameters = {
             "Scanning Mode" : False,
             "Reconstruction Mode" : False,
-            "Cloud Mode" : True
+            "Cloud Mode" : True,
+            "Calibration Mode" : False,
+            "Detection Mode" : False
             }
 
         if args.address and args.port :
@@ -105,10 +122,10 @@ def main() :
         if args.reconstruct :
             parameters["Operation"] = "Reconstruction"
             parameters["Reconstruction Parameter File"] = args.reconstruct[0]
-        
-        elif args.list[0] : 
+
+        elif args.list[0] :
             parameters["Operation"] = "List"
-        
+
         elif args.remove :
             parameters["Operation"] = "Remove"
             parameters["Dataset To Remove"] = args.remove[0]
@@ -124,7 +141,68 @@ def main() :
         else :
             Logger.printError("No operation selected, quitting ...")
             exit()
-        
+
+
+
+    elif args.mode == "calibration" :
+
+        parameters = {
+            "Scanning Mode" : False,
+            "Reconstruction Mode" : False,
+            "Cloud Mode" : False,
+            "Calibration Mode" : True,
+            "Detection Mode" : False
+            }
+
+        with open("config.json") as file :
+            jsonFile = json.load(file)
+
+            parameters["Calibration World Point Cloud Path"] = jsonFile["Calibration World Point Cloud Path"]
+            parameters["Calibration POV Point Cloud Path"] = jsonFile["Calibration POV Point Cloud Path"]
+            parameters["Calibration Intrinsics Path"] = jsonFile["Calibration Intrinsics Path"]
+            parameters["Calibration Voxel Size"] = float(jsonFile["Calibration Voxel Size"])
+            parameters["Calibration Normal Radius"] = float(jsonFile["Calibration Normal Radius"])
+            parameters["Calibration Max NN"] = int(jsonFile["Calibration Max NN"])
+            parameters["Calibration Point To Plane ICP Iterations"] = int(jsonFile["Calibration Point To Plane ICP Iterations"])
+            parameters["Calibration Colored ICP Iterations"] = int(jsonFile["Calibration Colored ICP Iterations"])
+            parameters["Calibration Point To Plane ICP Distance Threshold"] = float(jsonFile["Calibration Point To Plane ICP Distance Threshold"])
+            parameters["Calibration Colored ICP Distance Threshold"] = float(jsonFile["Calibration Colored ICP Distance Threshold"])
+            parameters["Calibration Point To Plane Convergence Max Iterations"] = int(jsonFile["Calibration Point To Plane Convergence Max Iterations"])
+            parameters["Calibration Colored ICP Convergence Max Iterations"] = int(jsonFile["Calibration Colored ICP Convergence Max Iterations"])
+            parameters["Calibration Point To Plane Convergence Relative Fitness"] = float(jsonFile["Calibration Point To Plane Convergence Relative Fitness"])
+            parameters["Calibration Colored ICP Convergence Relative Fitness"] = float(jsonFile["Calibration Colored ICP Convergence Relative Fitness"])
+            parameters["Calibration Point To Plane Convergence Relative RMSE"] = float(jsonFile["Calibration Point To Plane Convergence Relative RMSE"])
+            parameters["Calibration Colored ICP Convergence Relative RMSE"] = float(jsonFile["Calibration Colored ICP Convergence Relative RMSE"])
+            parameters["Detection World Point Cloud"] = jsonFile["Detection World Point Cloud"]
+
+
+
+    elif args.mode == "detection" :
+
+        parameters = {
+            "Scanning Mode" : False,
+            "Reconstruction Mode" : False,
+            "Cloud Mode" : False,
+            "Calibration Mode" : False,
+            "Detection Mode" : True
+            }
+
+        with open("config.json") as file :
+            jsonFile = json.load(file)
+
+            parameters["Detection Realsense Configuration File Path"] = jsonFile["Detection Realsense Configuration File Path"]
+            parameters["Detection Darknet GPU ID"] = int(jsonFile["Detection Darknet GPU ID"])
+            parameters["Detection Darknet Model Configuration File Path"] = jsonFile["Detection Darknet Model Configuration File Path"]
+            parameters["Detection Darknet Model Weights File Path"] = jsonFile["Detection Darknet Model Weights File Path"]
+            parameters["Detection Darknet Model Meta File Path"] = jsonFile["Detection Darknet Model Meta File Path"]
+            parameters["Detection Darknet Model Labels File Path"] = jsonFile["Detection Darknet Model Labels File Path"]
+            parameters["Detection Label To Detect"] = jsonFile["Detection Label To Detect"]
+            parameters["Detection World Point Cloud"] = jsonFile["Detection World Point Cloud"]
+            parameters["Project Root Path"] = jsonFile["Project Root Path"]
+            parameters["Calibration Voxel Size"] = float(jsonFile["Calibration Voxel Size"])
+            parameters["Calibration Normal Radius"] = float(jsonFile["Calibration Normal Radius"])
+            parameters["Calibration Max NN"] = int(jsonFile["Calibration Max NN"])
+
 
 
     else :
@@ -188,7 +266,7 @@ def main() :
         rsr.scan()
         rsr.writeReconstructionParametersFile()
         atexit.register(rsr.close)
-        if args.depthanalysis :
+        if parameters["Depth Analysis"] :
             rsr.getDatasetDepthQuality()
 
 
@@ -210,10 +288,20 @@ def main() :
 
             reconstructor = Reconstructor.Reconstructor(os.path.join(rsr.rootDir, "rconfig.json"))
 
-    
+
     if parameters["Cloud Mode"] :
 
         sk = Socket.Socket(parameters)
+
+    if parameters["Calibration Mode"] :
+
+        calibrator = Calibrator.Calibrator(parameters)
+
+    if parameters["Detection Mode"] :
+
+        detector = Detector.Detector(parameters)
+        detector.run(parameters)
+
 
 
 if __name__ == "__main__" :
