@@ -34,8 +34,8 @@ def main() :
     scanManualGroup = scanParser.add_argument_group(title="Manual Settings")
     reconstructParser = modes.add_parser("reconstruct", help="Reconstruction mode")
     cloudParser = modes.add_parser("cloud", help="Cloud based interaction and processing")
-    calibrationParser = modes.add_parser("calibration", help="Depth camera calibration for real time 3D integration")
-    detectionParser = modes.add_parser("detection", help="Real time detection and 3D integration")
+    calibrationParser = modes.add_parser("calibration", help="Depth camera calibration for real time 3D integration. The arguments can be directly set in config.json")
+    detectionParser = modes.add_parser("detection", help="Real time detection and 3D integration. The arguments can be directly set in config.json")
 
 
     scanParser.add_argument("--nsec", action="store", nargs=1, default=[0], type=int, required=False, help="Scan duration in seconds (0 for unlimited, press Q to quit). Default : 0")

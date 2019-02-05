@@ -94,8 +94,11 @@ class Detector :
 
         for element in res :
 
+            print(element)
+
             if element[0].decode("UTF-8") == parameters["Detection Label To Detect"] :
 
+                cv2.putText(colorImage, element[0].decode("UTF-8") + "->" + str(round(float(element[1]), 2) * 100) + "%", (int(element[2][0]) + 30, int(element[2][1]) + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
                 cv2.circle(colorImage, (int(element[2][0]), int(element[2][1])), 10, (255,0,0), -1)
 
                 distance = depthImage[int(element[2][1])][int(element[2][0])]

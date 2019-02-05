@@ -76,7 +76,8 @@ optional arguments:
 ## How to use - Client
 
 ```
-usage: Virtual_Vision.py [-h] {scan,reconstruct,cloud} ...
+usage: Virtual_Vision.py [-h]
+                         {scan,reconstruct,cloud,calibration,detection} ...
 
 Virtual Vision v0.1 - Client
 
@@ -84,11 +85,15 @@ optional arguments:
   -h, --help            show this help message and exit
 
 Operating Mode:
-  {scan,reconstruct,cloud}
+  {scan,reconstruct,cloud,calibration,detection}
                         Scan, Reconstruct or Cloud
     scan                Scanning mode
     reconstruct         Reconstruction mode
     cloud               Cloud based interaction and processing
+    calibration         Depth camera calibration for real time 3D integration.
+                        The arguments can be directly set in config.json
+    detection           Real time detection and 3D integration. The arguments
+                        can be directly set in config.json
 ```
 
 ### Scan parameters
@@ -177,6 +182,28 @@ optional arguments:
                         successfully merging the shards
 ```
 
+### Camera calibration parameters
+
+```
+usage: Virtual_Vision.py calibration [-h]
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
+The variables can be directly tweaked using the ```config.json``` file.
+
+### Real time detection and 3D integration parameters
+
+```
+usage: Virtual_Vision.py detection [-h]
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
+The variables can be directly tweaked using the ```config.json``` file.
+
+## Examples
+
 Currently, Virtual-Vision allows to :
 
 1. Record a dataset using an Intel RealSense and the following command :
@@ -215,4 +242,12 @@ python Virtual_Vision.py cloud --remove DATASET_NAME
 9. Merge the shards of one dataset (useful if the reconstruction process stopped before the shard assembling as it allows to skip the shard geenration process) by using the following command :
 ```
 python Virtual_Vision.py cloud --mergeshards DATASET_NAME
+```
+10. Calibrate the camera by calculating the 3D transformation between the camera's point of and the "World" point cloud, by using the following command :
+```
+python Virtual_Vision.py calibrate
+```
+11. Launch the real time detection and 3D integration by using the following command :
+```
+python Virtual_Vision.py detection
 ```
