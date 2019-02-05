@@ -2,7 +2,10 @@
 
 ## About the project
 
+### YouTube Video
 [![YouTube Video](https://img.youtube.com/vi/XPP8f8GIJ4g/0.jpg)](https://youtu.be/XPP8f8GIJ4g)
+
+### Abstract
 
 Virtual Vision is a computer vision project whose goal is to improve the monitoring of complex and vast environments using multiple technologies such as deep learning, virtual reality and 3D scanning. This projects allows one to :
 
