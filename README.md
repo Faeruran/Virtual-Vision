@@ -23,6 +23,7 @@ This project is currently being developed using the following libraries and devi
 ```
 + [Intel® RealSense™ SDK 2.0](https://github.com/IntelRealSense/librealsense)
 + [Intel® RealSense™ D435 (depth camera)](https://realsense.intel.com/)
++ [Darknet Yolo V3](https://github.com/pjreddie/darknet)
 
 ## Project steps
 
